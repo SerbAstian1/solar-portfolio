@@ -1,0 +1,7 @@
+{
+  "_comment": "Gzipped budgets in KB. entryJs is what every device loads before anything renders — the number that actually gates mobile. sceneJs is the lazily-loaded 3D chunk, desktop only. assets covers public/ binaries shipped with the scene.",
+  "entryJsGzipKB": 170,
+  "sceneJsGzipKB": 260,
+  "cssGzipKB": 20,
+  "assetsKB": 600
+}

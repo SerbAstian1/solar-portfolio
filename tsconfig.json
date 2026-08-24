@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+
+    /* Strictness. The orbital core is the reason this project has types at
+       all, so index access is checked too — an out-of-range body lookup
+       should be a compile error, not a NaN that quietly poisons a frame. */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+
+    /* Migration is incremental: .jsx and .tsx coexist until Phase 02 lands.
+       checkJs stays off so untyped legacy files don't block the build. */
+    "allowJs": true,
+    "checkJs": false,
+
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "types": ["vite/client"]
+  },
+  "include": ["src", "scripts"]
+}
