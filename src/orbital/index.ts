@@ -1,5 +1,6 @@
 export * from './camera'
 export * from './constants'
+export * from './cursorField'
 export * from './elements'
 export * from './hierarchy'
 export * from './interpolation'

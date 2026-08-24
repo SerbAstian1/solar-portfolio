@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { cursorDisplacement } from '../orbital/cursorField'
 
 interface Star {
   x: number
@@ -155,8 +156,15 @@ export default function DitherCanvas({ sunPos = { x: 0.5, y: 0.42 } }: DitherCan
         const tw = 0.35 + 0.65 * Math.abs(Math.sin(t * s.speed + s.phase))
         ctx.globalAlpha = tw
         ctx.fillStyle = '#fff'
+        // Bounded inverse-square nudge away from the pointer. Applied at draw
+        // time rather than integrated into the star's stored position, so the
+        // field returns to rest exactly when the pointer leaves and cannot
+        // accumulate drift over a long session.
+        const push = pointer.active
+          ? cursorDisplacement(s.x, s.y, pointer.x, pointer.y)
+          : { dx: 0, dy: 0 }
         ctx.beginPath()
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2)
+        ctx.arc(s.x + push.dx, s.y + push.dy, s.r, 0, Math.PI * 2)
         ctx.fill()
       })
       ctx.globalAlpha = 1
@@ -194,6 +202,24 @@ export default function DitherCanvas({ sunPos = { x: 0.5, y: 0.42 } }: DitherCan
 
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
+    /* Pointer position, in a ref rather than state: this is read once per
+       frame by the draw loop and must never cause a React render. Reduced
+       motion opts out of the disturbance entirely — it is ambient motion the
+       visitor did not ask for. */
+    const pointer = { x: -1e6, y: -1e6, active: false }
+    const onPointerMove = (event: PointerEvent) => {
+      pointer.x = event.clientX
+      pointer.y = event.clientY
+      pointer.active = true
+    }
+    const onPointerLeave = () => {
+      pointer.active = false
+    }
+    if (!reduceMotion) {
+      window.addEventListener('pointermove', onPointerMove, { passive: true })
+      window.addEventListener('pointerleave', onPointerLeave)
+    }
+
     resize()
     window.addEventListener('resize', resize)
 
@@ -206,6 +232,8 @@ export default function DitherCanvas({ sunPos = { x: 0.5, y: 0.42 } }: DitherCan
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
       window.removeEventListener('resize', resize)
+      window.removeEventListener('pointermove', onPointerMove)
+      window.removeEventListener('pointerleave', onPointerLeave)
     }
   }, [sunPos.x, sunPos.y])
 
