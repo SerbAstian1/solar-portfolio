@@ -7,7 +7,13 @@ import PlanetPreview from './PlanetPreview'
 import PanelOverlay from './PanelOverlay'
 import ThreeSolarSystem from './ThreeSolarSystem'
 
-export default function SolarSystem() {
+export interface SolarSystemProps {
+  /** Routed section. App owns the URL; this component renders whatever it says. */
+  sectionId: string | null
+  navigate: (id: string | null) => void
+}
+
+export default function SolarSystem({ sectionId, navigate }: SolarSystemProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const starDimRef = useRef<HTMLDivElement | null>(null)
   const previewRef = useRef<HTMLDivElement | null>(null)
@@ -28,7 +34,31 @@ export default function SolarSystem() {
     transitionRef,
     selectPlanet,
     closePanel,
+    jumpTo,
   } = usePlanetNavigation()
+
+  /**
+   * The URL drives selection, never the other way round. Clicks call
+   * navigate(); this effect turns whatever the URL now says into scene state,
+   * so a click, a back button, a forward button and a pasted deep link all
+   * travel the same path.
+   */
+  const hasSynced = useRef(false)
+  useEffect(() => {
+    if (!hasSynced.current) {
+      hasSynced.current = true
+      // Landing directly on /work should already be at /work, not fly there.
+      if (sectionId !== null) jumpTo(sectionId)
+      return
+    }
+    if (sectionId === selectedId) return
+
+    if (sectionId === null) closePanel()
+    else if (selectedId === null) selectPlanet(sectionId)
+    // Section to section (a history pop, usually): swap content immediately
+    // and let the camera spring carry the viewpoint across.
+    else jumpTo(sectionId)
+  }, [sectionId, selectedId, selectPlanet, closePanel, jumpTo])
 
   // Step 2 — dim stars via DOM ref (no React re-renders per frame).
   useEffect(() => {
@@ -74,8 +104,8 @@ export default function SolarSystem() {
             setHoveredId((current) => (current === planet.id ? null : current))
           }, 150)
         }}
-        onSelect={selectPlanet}
-        onHome={closePanel}
+        onSelect={(id: string) => navigate(id)}
+        onHome={() => navigate(null)}
       />
 
       <PlanetPreview ref={previewRef} planet={hoveredPlanet} />
@@ -83,7 +113,7 @@ export default function SolarSystem() {
       <PanelOverlay
         planet={selectedPlanet}
         visible={panelVisible}
-        onClose={closePanel}
+        onClose={() => navigate(null)}
       />
     </main>
   )

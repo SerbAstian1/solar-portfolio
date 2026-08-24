@@ -22,6 +22,17 @@ export interface PlanetNavigation {
   transitionRef: React.MutableRefObject<TransitionState>
   selectPlanet: (id: string) => void
   closePanel: () => void
+  /**
+   * Resolve straight to a settled state with no phased transition.
+   *
+   * Used for deep links and for back/forward between two sections. Running
+   * the full five-phase approach on page load would animate a camera journey
+   * the visitor never asked for from a place they were never at; and on a
+   * history pop it would contradict the instant feel of a browser button.
+   * The camera spring still travels smoothly to the new target, because
+   * retargeting mid-flight is what it is for.
+   */
+  jumpTo: (id: string | null) => void
 }
 
 /**
@@ -112,6 +123,22 @@ export function usePlanetNavigation(): PlanetNavigation {
     startTransition(-1, selectedId)
   }, [selectedId, startTransition])
 
+  const jumpTo = useCallback((id: string | null) => {
+    const tr = transitionRef.current
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current)
+      rafRef.current = null
+    }
+    tr.active = false
+    tr.direction = id === null ? -1 : 1
+    tr.targetId = id
+    tr.progress = id === null ? 0 : 1
+
+    setIsTransitioning(false)
+    setSelectedId(id)
+    setPanelVisible(id !== null)
+  }, [])
+
   useEffect(
     () => () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
@@ -127,5 +154,6 @@ export function usePlanetNavigation(): PlanetNavigation {
     transitionRef,
     selectPlanet,
     closePanel,
+    jumpTo,
   }
 }
