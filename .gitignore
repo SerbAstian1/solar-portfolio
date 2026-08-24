@@ -17,3 +17,6 @@ dist-ssg/
 
 # Test / coverage output
 coverage/
+
+# Generated cursor art payload (regenerate with npm run cursor)
+scripts/.cursor-data.json

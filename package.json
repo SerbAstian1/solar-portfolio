@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "size": "node scripts/check-size.mjs",
     "verify": "npm run typecheck && npm run test && npm run build && npm run size",
-    "prerender": "node scripts/prerender.mjs"
+    "prerender": "node scripts/prerender.mjs",
+    "cursor": "node scripts/build-cursor.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^9.121.3",
