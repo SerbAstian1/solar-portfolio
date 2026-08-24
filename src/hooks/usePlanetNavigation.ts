@@ -1,17 +1,40 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { OPEN_PHASES, TOTAL_OPEN } from '../utils/transitionEasing.js'
+import { OPEN_PHASES, TOTAL_OPEN } from '../utils/transitionEasing'
+
+/** Direction of travel: 1 opens a panel, -1 closes it. */
+export type TransitionDirection = 1 | -1
+
+export interface TransitionState {
+  active: boolean
+  direction: TransitionDirection
+  startTime: number
+  /** 0 at the system view, 1 at the fully opened panel. Read every frame by
+   *  the scene; deliberately not React state. */
+  progress: number
+  targetId: string | null
+}
+
+export interface PlanetNavigation {
+  selectedId: string | null
+  panelVisible: boolean
+  isTransitioning: boolean
+  isLocked: boolean
+  transitionRef: React.MutableRefObject<TransitionState>
+  selectPlanet: (id: string) => void
+  closePanel: () => void
+}
 
 /**
  * Manages planet selection transitions with phase timing.
  * React state updates only at phase boundaries; progress lives in a ref
  * so the 3D scene can read it every frame without re-renders.
  */
-export function usePlanetNavigation() {
-  const [selectedId, setSelectedId] = useState(null)
+export function usePlanetNavigation(): PlanetNavigation {
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [panelVisible, setPanelVisible] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
 
-  const transitionRef = useRef({
+  const transitionRef = useRef<TransitionState>({
     active: false,
     direction: 1,
     startTime: 0,
@@ -19,7 +42,7 @@ export function usePlanetNavigation() {
     targetId: null,
   })
 
-  const rafRef = useRef(null)
+  const rafRef = useRef<number | null>(null)
 
   const tick = useCallback(() => {
     const tr = transitionRef.current
@@ -30,11 +53,10 @@ export function usePlanetNavigation() {
     tr.progress = tr.direction === 1 ? raw : 1 - raw
 
     const opening = tr.direction === 1
-    const shouldShowPanel = tr.progress >= OPEN_PHASES.reposition
     const isComplete = opening ? tr.progress >= 1 : tr.progress <= 0
 
     if (opening) {
-      setPanelVisible(shouldShowPanel)
+      setPanelVisible(tr.progress >= OPEN_PHASES.reposition)
       if (isComplete) {
         tr.active = false
         setIsTransitioning(false)
@@ -49,13 +71,11 @@ export function usePlanetNavigation() {
       }
     }
 
-    if (tr.active) {
-      rafRef.current = requestAnimationFrame(tick)
-    }
+    if (tr.active) rafRef.current = requestAnimationFrame(tick)
   }, [])
 
   const startTransition = useCallback(
-    (direction, targetId) => {
+    (direction: TransitionDirection, targetId: string) => {
       const tr = transitionRef.current
       if (tr.active) return false
 
@@ -66,12 +86,8 @@ export function usePlanetNavigation() {
       tr.progress = direction === 1 ? 0 : 1
 
       setIsTransitioning(true)
-
-      if (direction === 1) {
-        setSelectedId(targetId)
-      } else {
-        setPanelVisible(false)
-      }
+      if (direction === 1) setSelectedId(targetId)
+      else setPanelVisible(false)
 
       rafRef.current = requestAnimationFrame(tick)
       return true
@@ -80,36 +96,34 @@ export function usePlanetNavigation() {
   )
 
   const selectPlanet = useCallback(
-    (id) => {
+    (id: string) => {
       if (transitionRef.current.active) return
-      if (selectedId && selectedId !== id) return
-      if (selectedId === id && panelVisible) return
-      if (selectedId === id) return
+      // Any existing selection blocks a new one; the panel must be closed
+      // first so the camera has a defined place to travel from.
+      if (selectedId !== null) return
       startTransition(1, id)
     },
-    [selectedId, panelVisible, startTransition],
+    [selectedId, startTransition],
   )
 
   const closePanel = useCallback(() => {
     if (transitionRef.current.active) return
-    if (!selectedId) return
+    if (selectedId === null) return
     startTransition(-1, selectedId)
   }, [selectedId, startTransition])
 
   useEffect(
     () => () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
     },
     [],
   )
-
-  const isLocked = isTransitioning || Boolean(selectedId)
 
   return {
     selectedId,
     panelVisible,
     isTransitioning,
-    isLocked,
+    isLocked: isTransitioning || selectedId !== null,
     transitionRef,
     selectPlanet,
     closePanel,

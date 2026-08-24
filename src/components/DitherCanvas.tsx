@@ -1,5 +1,28 @@
 import { useEffect, useRef } from 'react'
 
+interface Star {
+  x: number
+  y: number
+  r: number
+  phase: number
+  speed: number
+}
+
+interface Comet {
+  x: number
+  y: number
+  vx: number
+  vy: number
+  life: number
+  maxLife: number
+  delay: number
+}
+
+interface DitherCanvasProps {
+  /** Normalised position of the star's glow centre, 0-1 of the viewport. */
+  sunPos?: { x: number; y: number }
+}
+
 // Classic 8x8 Bayer ordered-dither threshold matrix, normalized 0..1
 const BAYER_8 = [
   0, 32, 8, 40, 2, 34, 10, 42,
@@ -12,7 +35,7 @@ const BAYER_8 = [
   63, 31, 55, 23, 61, 29, 53, 21,
 ].map((v) => v / 64)
 
-function pseudoNoise(x, y, t) {
+function pseudoNoise(x: number, y: number, t: number): number {
   // Cheap layered sine "noise" — deterministic, fast, good enough for animated grain.
   const n =
     Math.sin(x * 0.021 + t * 0.00012) * Math.cos(y * 0.017 - t * 0.00009) * 0.5 +
@@ -25,18 +48,31 @@ function pseudoNoise(x, y, t) {
  * then blits it up with nearest-neighbor scaling for a chunky, print-halftone look.
  * Stars and comets are drawn as a separate crisp layer on top.
  */
-export default function DitherCanvas({ sunPos = { x: 0.5, y: 0.42 } }) {
-  const canvasRef = useRef(null)
-  const rafRef = useRef(null)
+export default function DitherCanvas({ sunPos = { x: 0.5, y: 0.42 } }: DitherCanvasProps) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const rafRef = useRef<number | null>(null)
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    const ctx = canvas.getContext('2d')
+    const canvasEl = canvasRef.current
+    if (!canvasEl) return
+    const rawCtx = canvasEl.getContext('2d')
+    if (!rawCtx) return
+
+    // Re-bound with non-nullable declared types. TS does not carry the
+    // null-guard narrowing into the hoisted function declarations below,
+    // so the guard is done once here and the rest of the effect uses these.
+    const canvas: HTMLCanvasElement = canvasEl
+    const ctx: CanvasRenderingContext2D = rawCtx
 
     const DITHER_SCALE = 12 // smaller scale = tighter, denser grain
-    let low, lctx, w, h, lw, lh
-    let stars = []
-    let comets = []
+    let low: HTMLCanvasElement
+    let lctx: CanvasRenderingContext2D
+    let w = 0
+    let h = 0
+    let lw = 0
+    let lh = 0
+    let stars: Star[] = []
+    let comets: Comet[] = []
 
     function resize() {
       w = window.innerWidth
@@ -48,7 +84,9 @@ export default function DitherCanvas({ sunPos = { x: 0.5, y: 0.42 } }) {
       low = document.createElement('canvas')
       low.width = lw
       low.height = lh
-      lctx = low.getContext('2d')
+      const lowCtx = low.getContext('2d')
+      if (!lowCtx) return
+      lctx = lowCtx
 
       stars = Array.from({ length: 160 }, () => ({
         x: Math.random() * w,
@@ -60,7 +98,7 @@ export default function DitherCanvas({ sunPos = { x: 0.5, y: 0.42 } }) {
       comets = Array.from({ length: 2 }, (_, i) => makeComet(i))
     }
 
-    function makeComet(seed) {
+    function makeComet(seed: number): Comet {
       return {
         x: w * (0.5 + Math.random() * 0.4),
         y: h * (0.05 + Math.random() * 0.3),
@@ -72,7 +110,7 @@ export default function DitherCanvas({ sunPos = { x: 0.5, y: 0.42 } }) {
       }
     }
 
-    function drawDitherField(t) {
+    function drawDitherField(t: number) {
       const imgData = lctx.createImageData(lw, lh)
       const cx = lw * sunPos.x
       const cy = lh * sunPos.y
@@ -87,7 +125,7 @@ export default function DitherCanvas({ sunPos = { x: 0.5, y: 0.42 } }) {
 
           const bx = x % 8
           const by = y % 8
-          const threshold = BAYER_8[by * 8 + bx]
+          const threshold = BAYER_8[by * 8 + bx] ?? 0
           const on = value > threshold
 
           const idx = (y * lw + x) * 4
@@ -104,7 +142,7 @@ export default function DitherCanvas({ sunPos = { x: 0.5, y: 0.42 } }) {
       lctx.putImageData(imgData, 0, 0)
     }
 
-    function draw(t) {
+    function draw(t: number) {
       ctx.imageSmoothingEnabled = false
       ctx.fillStyle = '#000'
       ctx.fillRect(0, 0, w, h)
@@ -113,7 +151,7 @@ export default function DitherCanvas({ sunPos = { x: 0.5, y: 0.42 } }) {
       ctx.drawImage(low, 0, 0, lw, lh, 0, 0, w, h)
 
       // Stars
-      stars.forEach((s) => {
+      stars.forEach((s: Star) => {
         const tw = 0.35 + 0.65 * Math.abs(Math.sin(t * s.speed + s.phase))
         ctx.globalAlpha = tw
         ctx.fillStyle = '#fff'
@@ -124,7 +162,7 @@ export default function DitherCanvas({ sunPos = { x: 0.5, y: 0.42 } }) {
       ctx.globalAlpha = 1
 
       // Comets
-      comets.forEach((c, i) => {
+      comets.forEach((c: Comet, i: number) => {
         c.life += 1
         if (c.life < c.delay) return
         const localLife = c.life - c.delay
@@ -166,7 +204,7 @@ export default function DitherCanvas({ sunPos = { x: 0.5, y: 0.42 } }) {
     }
 
     return () => {
-      cancelAnimationFrame(rafRef.current)
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
       window.removeEventListener('resize', resize)
     }
   }, [sunPos.x, sunPos.y])

@@ -1,18 +1,24 @@
 import { useEffect, useRef, useState } from 'react'
-import { PLANETS } from '../data/planets.js'
-import { usePlanetNavigation } from '../hooks/usePlanetNavigation.js'
-import { OPEN_PHASES } from '../utils/transitionEasing.js'
-import PlanetPreview from './PlanetPreview.jsx'
-import PanelOverlay from './PanelOverlay.jsx'
-import ThreeSolarSystem from './ThreeSolarSystem.jsx'
+import { PLANETS } from '../data/planets'
+import type { PlanetContent } from '../data/types'
+import { usePlanetNavigation } from '../hooks/usePlanetNavigation'
+import { OPEN_PHASES } from '../utils/transitionEasing'
+import PlanetPreview from './PlanetPreview'
+import PanelOverlay from './PanelOverlay'
+import ThreeSolarSystem from './ThreeSolarSystem'
 
 export default function SolarSystem() {
-  const [hoveredId, setHoveredId] = useState(null)
-  const starDimRef = useRef(null)
-  const previewRef = useRef(null)
-  const leaveTimeoutRef = useRef(null)
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const starDimRef = useRef<HTMLDivElement | null>(null)
+  const previewRef = useRef<HTMLDivElement | null>(null)
+  const leaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  useEffect(() => () => clearTimeout(leaveTimeoutRef.current), [])
+  useEffect(
+    () => () => {
+      if (leaveTimeoutRef.current !== null) clearTimeout(leaveTimeoutRef.current)
+    },
+    [],
+  )
 
   const {
     selectedId,
@@ -26,7 +32,7 @@ export default function SolarSystem() {
 
   // Step 2 — dim stars via DOM ref (no React re-renders per frame).
   useEffect(() => {
-    let raf
+    let raf = 0
     const updateStarDim = () => {
       const progress = transitionRef.current.progress
       const dim = progress > 0 ? Math.min(progress / OPEN_PHASES.approach, 1) * 0.35 : 0
@@ -52,18 +58,18 @@ export default function SolarSystem() {
         isLocked={isLocked}
         isTransitioning={isTransitioning}
         previewRef={previewRef}
-        onHover={(planet) => {
+        onHover={(planet: PlanetContent) => {
           if (isLocked) return
-          clearTimeout(leaveTimeoutRef.current)
+          if (leaveTimeoutRef.current !== null) clearTimeout(leaveTimeoutRef.current)
           setHoveredId(planet.id)
         }}
-        onLeave={(planet) => {
+        onLeave={(planet: PlanetContent) => {
           // Small grace period — a moving planet can momentarily drop out of
           // raycast range for a single frame; don't let that flicker the
           // tooltip closed if hover resumes right after. Scoped to the planet
           // that left, so a neighbour crossing the cursor can't close a
           // tooltip that belongs to someone else.
-          clearTimeout(leaveTimeoutRef.current)
+          if (leaveTimeoutRef.current !== null) clearTimeout(leaveTimeoutRef.current)
           leaveTimeoutRef.current = setTimeout(() => {
             setHoveredId((current) => (current === planet.id ? null : current))
           }, 150)

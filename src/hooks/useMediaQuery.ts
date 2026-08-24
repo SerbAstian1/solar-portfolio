@@ -11,9 +11,9 @@ import { useCallback, useSyncExternalStore } from 'react'
  * getServerSnapshot returns false so prerendered HTML (Phase 08) emits the
  * lightweight branch and lets the client upgrade.
  */
-export function useMediaQuery(query) {
+export function useMediaQuery(query: string): boolean {
   const subscribe = useCallback(
-    (onChange) => {
+    (onChange: () => void) => {
       const list = window.matchMedia(query)
       list.addEventListener('change', onChange)
       return () => list.removeEventListener('change', onChange)

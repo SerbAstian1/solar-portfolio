@@ -1,6 +1,10 @@
-import { PLANETS } from '../data/planets.js'
+import { PLANETS } from '../data/planets'
 
-export default function MobileNav({ onSelect }) {
+interface MobileNavProps {
+  onSelect: (id: string) => void
+}
+
+export default function MobileNav({ onSelect }: MobileNavProps) {
   return (
     <div className="mobile-nav">
       <div className="eyebrow">Akagha Wisdom Creative Studio</div>

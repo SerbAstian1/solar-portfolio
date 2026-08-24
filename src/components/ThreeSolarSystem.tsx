@@ -2,33 +2,34 @@ import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Html, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
-import { PLANETS } from '../data/planets.js'
-import { lerp, OPEN_PHASES, phaseProgress } from '../utils/transitionEasing.js'
+import type { MutableRefObject } from 'react'
+import type { TransitionState } from '../hooks/usePlanetNavigation'
+import type { PlanetContent } from '../data/types'
+import { PLANETS } from '../data/planets'
+import {
+  BASE_PERIOD,
+  BASE_SEMI_MAJOR,
+  ORBIT_DEPTH,
+  ORBIT_TILT,
+  PLANET_BODIES,
+  TAU,
+  eccentricAnomaly,
+  getBody,
+  meanAnomalyAt,
+  orbitPosition,
+  orbitalPeriod,
+} from '../orbital'
+import type { CelestialBody } from '../orbital'
+import { lerp, OPEN_PHASES, phaseProgress } from '../utils/transitionEasing'
+
+type TransitionRef = MutableRefObject<TransitionState>
+type PlanetRefs = MutableRefObject<Record<string, THREE.Group | null>>
+type ModelRefs = MutableRefObject<Record<string, THREE.Object3D | null>>
 
 const SUN_SIZE = 138
 const SUN_RADIUS = SUN_SIZE / 2
 const SUN_ROTATION_PERIOD = 70
 const SUN_OCCLUSION_SOFTNESS = 26
-
-// Sine of the angle between the orbital plane and the view plane. Steep enough
-// that every orbit reads as an ellipse rather than a flat line, which means
-// only the innermost planet ever crosses the sun's disc — the outer ones pass
-// above and below it, the way an inclined view of a real system looks.
-const ORBIT_TILT = 0.38
-const ORBIT_DEPTH = Math.sqrt(1 - ORBIT_TILT ** 2)
-
-// The sun sits at one focus of each ellipse, so an eccentric orbit is offset
-// from centre. Sharing one perihelion direction keeps the rings near
-// concentric (~78 units apart at their tightest) instead of pinching together.
-const PERIHELION = 0.6
-const PERIHELION_COS = Math.cos(PERIHELION)
-const PERIHELION_SIN = Math.sin(PERIHELION)
-
-// Kepler's third law — period grows with the semi-major axis to the 3/2 power,
-// anchored on the innermost orbit. This is what makes the system read as one:
-// the inner planet visibly laps the outer ones.
-const BASE_SEMI_MAJOR = 170
-const BASE_PERIOD = 48
 
 const SELECTED_SCALE = 2.5
 const DISTANT_OPACITY = 0.45
@@ -39,51 +40,12 @@ const LABEL_HEADROOM = 30
 const VIEWPORT_PADDING = 40
 const MIN_SYSTEM_SCALE = 0.3
 
-/**
- * Orbital elements plus render size for each planet. `meanAnomaly` is where
- * the planet sits at t=0 and `spin` is its axial rotation period in seconds.
- */
-const ORBITS = {
-  work: { semiMajor: 170, eccentricity: 0.055, meanAnomaly: 1.6, spin: 11, axialTilt: 0.24, size: 34 },
-  services: { semiMajor: 250, eccentricity: 0.045, meanAnomaly: 0.7, spin: 15, axialTilt: -0.16, size: 46 },
-  about: { semiMajor: 330, eccentricity: 0.04, meanAnomaly: 3.9, spin: 9, axialTilt: 0.41, size: 30 },
-  pricing: { semiMajor: 410, eccentricity: 0.035, meanAnomaly: 2.3, spin: 19, axialTilt: -0.3, size: 52 },
-  contact: { semiMajor: 490, eccentricity: 0.03, meanAnomaly: 5.1, spin: 13, axialTilt: 0.19, size: 36 },
-}
-
 // Pointer target stays close to the visible planet. The tooltip now follows
 // the planet as it moves, so an oversized target that no longer matches what
 // you can see buys nothing and makes near-conjunctions ambiguous.
 const MIN_HIT_RADIUS = 26
-function getHitRadius(size) {
+function getHitRadius(size: number): number {
   return Math.max(size / 2 + 12, MIN_HIT_RADIUS)
-}
-
-function orbitalPeriod(semiMajor) {
-  return BASE_PERIOD * (semiMajor / BASE_SEMI_MAJOR) ** 1.5
-}
-
-/**
- * Newton solve of Kepler's equation, M = E − e·sin E. Converges to well past
- * float precision in three passes at these eccentricities. Going through the
- * eccentric anomaly rather than sweeping the angle directly is what gives the
- * planets Kepler's second law — faster at perihelion, slower at aphelion.
- */
-function eccentricAnomaly(meanAnomaly, eccentricity) {
-  let E = meanAnomaly
-  for (let i = 0; i < 3; i += 1) {
-    E -= (E - eccentricity * Math.sin(E) - meanAnomaly) / (1 - eccentricity * Math.cos(E))
-  }
-  return E
-}
-
-/** Point on the tilted ellipse with the sun at one focus. */
-function getOrbitPosition(orbit, E, target) {
-  const alongMajor = orbit.semiMajor * (Math.cos(E) - orbit.eccentricity)
-  const alongMinor = orbit.semiMajor * Math.sqrt(1 - orbit.eccentricity ** 2) * Math.sin(E)
-  const planar = alongMajor * PERIHELION_COS - alongMinor * PERIHELION_SIN
-  const depth = alongMajor * PERIHELION_SIN + alongMinor * PERIHELION_COS
-  return target.set(planar, depth * ORBIT_TILT, depth * ORBIT_DEPTH)
 }
 
 /** Half-extents the whole system needs on screen, sampled off the real curves. */
@@ -91,9 +53,9 @@ const SYSTEM_EXTENT = (() => {
   const point = new THREE.Vector3()
   let x = 0
   let y = 0
-  Object.values(ORBITS).forEach((orbit) => {
+  PLANET_BODIES.forEach((orbit) => {
     for (let i = 0; i < 360; i += 1) {
-      getOrbitPosition(orbit, (i / 360) * Math.PI * 2, point)
+      orbitPosition(orbit, (i / 360) * TAU, point)
       x = Math.max(x, Math.abs(point.x) + orbit.size / 2)
       y = Math.max(y, Math.abs(point.y) + orbit.size / 2 + LABEL_HEADROOM)
     }
@@ -128,7 +90,7 @@ function useSystemScale() {
  * passing in front of the sun (positive z) is left alone; normal depth
  * testing already paints it over the sun correctly in that case.
  */
-function getSunOcclusion(position) {
+function getSunOcclusion(position: THREE.Vector3): number {
   if (position.z >= 0) return 0
   const screenDist = Math.hypot(position.x, position.y)
   const edge = SUN_RADIUS + SUN_OCCLUSION_SOFTNESS
@@ -138,33 +100,42 @@ function getSunOcclusion(position) {
 }
 
 /** Apply emissive emphasis to GLB mesh materials — lightweight glow substitute. */
-function setModelEmphasis(object, emphasis, settledDim = 0) {
-  object.traverse((child) => {
-    if (!child.isMesh || !child.material) return
-    const materials = Array.isArray(child.material) ? child.material : [child.material]
-    materials.forEach((mat) => {
-      if (!mat.emissive) return
+function setModelEmphasis(object: THREE.Object3D, emphasis: number, settledDim = 0): void {
+  object.traverse((child: THREE.Object3D) => {
+    const mesh = child as THREE.Mesh
+    if (!mesh.isMesh || !mesh.material) return
+    const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+    materials.forEach((mat: THREE.Material) => {
+      const standard = mat as THREE.MeshStandardMaterial
+      if (!standard.emissive) return
       const glow = Math.max(0, emphasis - settledDim * 0.5)
-      mat.emissive.setRGB(0.18 * glow, 0.14 * glow, 0.08 * glow)
-      mat.emissiveIntensity = glow * 0.55
+      standard.emissive.setRGB(0.18 * glow, 0.14 * glow, 0.08 * glow)
+      standard.emissiveIntensity = glow * 0.55
     })
   })
 }
 
 /** Reduce overall mesh opacity for atmospheric background role. */
-function setModelOpacity(object, opacity) {
-  object.traverse((child) => {
-    if (!child.isMesh || !child.material) return
-    const materials = Array.isArray(child.material) ? child.material : [child.material]
-    materials.forEach((mat) => {
+function setModelOpacity(object: THREE.Object3D, opacity: number): void {
+  object.traverse((child: THREE.Object3D) => {
+    const mesh = child as THREE.Mesh
+    if (!mesh.isMesh || !mesh.material) return
+    const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+    materials.forEach((mat: THREE.Material) => {
       mat.transparent = opacity < 1
       mat.opacity = opacity
     })
   })
 }
 
-function PixelCamera({ transitionRef, planetRefs }) {
-  const { camera, size } = useThree()
+interface PixelCameraProps {
+  transitionRef: TransitionRef
+  planetRefs: PlanetRefs
+}
+
+function PixelCamera({ transitionRef, planetRefs }: PixelCameraProps) {
+  const { camera: rawCamera, size } = useThree()
+  const camera = rawCamera as THREE.OrthographicCamera
   const driftTarget = useRef(new THREE.Vector3())
 
   useEffect(() => {
@@ -220,17 +191,33 @@ function PixelCamera({ transitionRef, planetRefs }) {
  * cursor happened to enter. Writes straight to the DOM node — the tooltip must
  * not re-render sixty times a second.
  */
-function PreviewTracker({ hoveredId, planetRefs, previewRef, systemScale }) {
+interface PreviewTrackerProps {
+  hoveredId: string | null
+  planetRefs: PlanetRefs
+  previewRef: MutableRefObject<HTMLDivElement | null>
+  systemScale: number
+}
+
+function PreviewTracker({
+  hoveredId,
+  planetRefs,
+  previewRef,
+  systemScale,
+}: PreviewTrackerProps) {
   const { camera, size } = useThree()
   const projected = useRef(new THREE.Vector3())
-  const measured = useRef({ id: null, width: 0, height: 0 })
+  const measured = useRef<{ id: string | null; width: number; height: number }>({
+    id: null,
+    width: 0,
+    height: 0,
+  })
   const flipped = useRef(false)
 
   useFrame(() => {
     const anchor = previewRef.current
     const planetGroup = hoveredId ? planetRefs.current[hoveredId] : null
-    const slot = anchor?.firstElementChild
-    if (!anchor || !planetGroup || !slot) return
+    const slot = anchor?.firstElementChild as HTMLElement | null | undefined
+    if (!anchor || !planetGroup || !slot || hoveredId === null) return
 
     // Card size only changes when the copy does, and reading it forces layout.
     // A zero height means the card hasn't mounted yet, so keep re-measuring.
@@ -243,7 +230,7 @@ function PreviewTracker({ hoveredId, planetRefs, previewRef, systemScale }) {
     const screenX = (projected.current.x * 0.5 + 0.5) * size.width
     const screenY = (-projected.current.y * 0.5 + 0.5) * size.height
 
-    const gap = (ORBITS[hoveredId].size / 2) * systemScale + 20
+    const gap = ((getBody(hoveredId)?.size ?? 0) / 2) * systemScale + 20
     const halfWidth = measured.current.width / 2
     const marginX = halfWidth + VIEWPORT_PADDING / 2
 
@@ -263,13 +250,19 @@ function PreviewTracker({ hoveredId, planetRefs, previewRef, systemScale }) {
   return null
 }
 
-function Model({ url, size, onModelReady }) {
-  const { scene } = useGLTF(url)
+interface ModelProps {
+  url: string
+  size: number
+  onModelReady?: (model: THREE.Object3D | null) => void
+}
+
+function Model({ url, size, onModelReady }: ModelProps) {
+  const { scene } = useGLTF(url) as unknown as { scene: THREE.Group }
   const model = useMemo(() => {
     const cloned = scene.clone(true)
     // Purely visual — all pointer interaction goes through the dedicated
     // invisible hit-sphere, so this shouldn't compete for raycast hits.
-    cloned.traverse((child) => {
+    cloned.traverse((child: THREE.Object3D) => {
       child.raycast = () => null
     })
     return cloned
@@ -293,29 +286,64 @@ function Model({ url, size, onModelReady }) {
   )
 }
 
-function OrbitRing({ orbit, transitionRef }) {
-  const lineRef = useRef(null)
-  const geometry = useMemo(() => {
+interface OrbitRingProps {
+  orbit: CelestialBody
+  transitionRef: TransitionRef
+}
+
+function OrbitRing({ orbit, transitionRef }: OrbitRingProps) {
+  // Built as an object rather than as <line>: in JSX `line` resolves to the
+  // SVG element, not three's Line. Going through <primitive> also gives the
+  // geometry and material an owner that can dispose them on unmount, which
+  // the previous form never did.
+  const line = useMemo(() => {
     const point = new THREE.Vector3()
     const points = Array.from({ length: 161 }, (_, index) => {
-      getOrbitPosition(orbit, (index / 160) * Math.PI * 2, point)
+      orbitPosition(orbit, (index / 160) * TAU, point)
       return point.clone()
     })
-    return new THREE.BufferGeometry().setFromPoints(points)
+    const geometry = new THREE.BufferGeometry().setFromPoints(points)
+    const material = new THREE.LineBasicMaterial({
+      color: '#fff',
+      transparent: true,
+      opacity: ORBIT_OPACITY_REST,
+    })
+    const created = new THREE.Line(geometry, material)
+    created.raycast = () => null
+    return created
   }, [orbit])
 
+  useEffect(
+    () => () => {
+      line.geometry.dispose()
+      ;(line.material as THREE.Material).dispose()
+    },
+    [line],
+  )
+
   useFrame(() => {
-    if (!lineRef.current) return
-    const progress = transitionRef.current.progress
-    const fadeT = phaseProgress(progress, 0, OPEN_PHASES.approach)
-    lineRef.current.material.opacity = lerp(ORBIT_OPACITY_REST, ORBIT_OPACITY_DIM, fadeT)
+    const fadeT = phaseProgress(transitionRef.current.progress, 0, OPEN_PHASES.approach)
+    ;(line.material as THREE.LineBasicMaterial).opacity = lerp(
+      ORBIT_OPACITY_REST,
+      ORBIT_OPACITY_DIM,
+      fadeT,
+    )
   })
 
-  return (
-    <line ref={lineRef} geometry={geometry} raycast={() => null}>
-      <lineBasicMaterial color="#fff" transparent opacity={ORBIT_OPACITY_REST} />
-    </line>
-  )
+  return <primitive object={line} />
+}
+
+interface PlanetProps {
+  data: PlanetContent
+  orbit: CelestialBody
+  onHover: (planet: PlanetContent) => void
+  onLeave: (planet: PlanetContent) => void
+  onSelect: (id: string) => void
+  transitionRef: TransitionRef
+  planetRefs: PlanetRefs
+  modelRefs: ModelRefs
+  isLocked: boolean
+  selectedId: string | null
 }
 
 function Planet({
@@ -329,13 +357,13 @@ function Planet({
   modelRefs,
   isLocked,
   selectedId,
-}) {
-  const orbitRef = useRef(null)
-  const visualRef = useRef(null)
-  const spinRef = useRef(null)
+}: PlanetProps) {
+  const orbitRef = useRef<THREE.Group | null>(null)
+  const visualRef = useRef<THREE.Group | null>(null)
+  const spinRef = useRef<THREE.Group | null>(null)
   const offsetRef = useRef(new THREE.Vector3())
   const occludedRef = useRef(false)
-  const labelRef = useRef(null)
+  const labelRef = useRef<HTMLSpanElement | null>(null)
   const isSelected = selectedId === data.id
   const isDisabled = isLocked
   const period = useMemo(() => orbitalPeriod(orbit.semiMajor), [orbit])
@@ -350,11 +378,15 @@ function Planet({
   useFrame(({ clock, size }) => {
     if (!orbitRef.current) return
 
-    const meanAnomaly = orbit.meanAnomaly + (clock.elapsedTime / period) * Math.PI * 2
-    getOrbitPosition(orbit, eccentricAnomaly(meanAnomaly, orbit.eccentricity), orbitRef.current.position)
+    const meanAnomaly = meanAnomalyAt(orbit, clock.elapsedTime)
+    orbitPosition(
+      orbit,
+      eccentricAnomaly(meanAnomaly, orbit.eccentricity),
+      orbitRef.current.position,
+    )
 
     if (spinRef.current) {
-      spinRef.current.rotation.y = (clock.elapsedTime / orbit.spin) * Math.PI * 2
+      spinRef.current.rotation.y = (clock.elapsedTime / orbit.spin) * TAU
     }
 
     const tr = transitionRef.current
@@ -423,7 +455,7 @@ function Planet({
     }
   })
 
-  const handleHover = (event) => {
+  const handleHover = (event: { stopPropagation: () => void }) => {
     if (isDisabled || occludedRef.current) return
     event.stopPropagation()
     onHover(data)
@@ -447,7 +479,7 @@ function Planet({
             hover/click never depends on the model's exact (and sometimes
             irregular) rendered silhouette, and so axial spin can't move it. */}
         <mesh
-          onClick={isDisabled ? undefined : (event) => {
+          onClick={isDisabled ? undefined : (event: { stopPropagation: () => void }) => {
             if (occludedRef.current) return
             event.stopPropagation()
             onSelect(data.id)
@@ -474,9 +506,15 @@ function Planet({
   )
 }
 
-function Sun({ onHome, transitionRef, isTransitioning }) {
-  const groupRef = useRef(null)
-  const { scene } = useGLTF('/sun3d.glb')
+interface SunProps {
+  onHome: () => void
+  transitionRef: TransitionRef
+  isTransitioning: boolean
+}
+
+function Sun({ onHome, transitionRef, isTransitioning }: SunProps) {
+  const groupRef = useRef<THREE.Group | null>(null)
+  const { scene } = useGLTF('/sun3d.glb') as unknown as { scene: THREE.Group }
   const model = useMemo(() => scene.clone(true), [scene])
   const scale = useMemo(() => {
     const bounds = new THREE.Box3().setFromObject(model)
@@ -500,6 +538,19 @@ function Sun({ onHome, transitionRef, isTransitioning }) {
   )
 }
 
+export interface SceneProps {
+  transitionRef: TransitionRef
+  selectedId: string | null
+  hoveredId: string | null
+  isLocked: boolean
+  isTransitioning: boolean
+  onHover: (planet: PlanetContent) => void
+  onLeave: (planet: PlanetContent) => void
+  onSelect: (id: string) => void
+  onHome: () => void
+  previewRef: MutableRefObject<HTMLDivElement | null>
+}
+
 function Scene({
   transitionRef,
   selectedId,
@@ -511,9 +562,9 @@ function Scene({
   onSelect,
   onHome,
   previewRef,
-}) {
-  const planetRefs = useRef({})
-  const modelRefs = useRef({})
+}: SceneProps) {
+  const planetRefs: PlanetRefs = useRef({})
+  const modelRefs: ModelRefs = useRef({})
   const systemScale = useSystemScale()
 
   return (
@@ -530,15 +581,15 @@ function Scene({
       <pointLight position={[0, 0, 180]} intensity={0.8} />
       <Suspense fallback={null}>
         <group scale={systemScale}>
-          {PLANETS.map((planet) => (
-            <OrbitRing key={planet.id} orbit={ORBITS[planet.id]} transitionRef={transitionRef} />
+          {PLANET_BODIES.map((body) => (
+            <OrbitRing key={body.id} orbit={body} transitionRef={transitionRef} />
           ))}
           <Sun onHome={onHome} transitionRef={transitionRef} isTransitioning={isTransitioning} />
           {PLANETS.map((planet) => (
             <Planet
               key={planet.id}
               data={planet}
-              orbit={ORBITS[planet.id]}
+              orbit={getBody(planet.id)!}
               onHover={onHover}
               onLeave={onLeave}
               onSelect={onSelect}
@@ -555,7 +606,7 @@ function Scene({
   )
 }
 
-export default function ThreeSolarSystem(props) {
+export default function ThreeSolarSystem(props: SceneProps) {
   return (
     <div className="three-solar-system">
       <Canvas

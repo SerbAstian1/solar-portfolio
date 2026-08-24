@@ -1,12 +1,20 @@
 import { forwardRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import type { PlanetContent } from '../data/types'
+
+interface PlanetPreviewProps {
+  planet: PlanetContent | null
+}
 
 /**
  * Hover card for a planet. The outer anchor is a zero-size point that
  * ThreeSolarSystem moves to the planet's projected position each frame; the
  * card hangs off it, so nothing here needs to know about screen coordinates.
  */
-const PlanetPreview = forwardRef(function PlanetPreview({ planet }, ref) {
+const PlanetPreview = forwardRef<HTMLDivElement, PlanetPreviewProps>(function PlanetPreview(
+  { planet },
+  ref,
+) {
   return (
     <div className="planet-preview-anchor" ref={ref} aria-hidden="true">
       <div className="planet-preview-slot">

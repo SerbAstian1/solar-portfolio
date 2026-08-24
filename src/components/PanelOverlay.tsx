@@ -1,18 +1,27 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import OutlineButton from './OutlineButton.jsx'
+import type { PlanetContent, Project } from '../data/types'
+import OutlineButton from './OutlineButton'
+
+interface PanelOverlayProps {
+  planet: PlanetContent | null
+  /** Omitted by the fallback nav, which has no phased transition to wait on. */
+  visible?: boolean
+  onClose: () => void
+}
 
 const PANEL_EASE = [0.16, 1, 0.3, 1]
 
-export default function PanelOverlay({ planet, visible, onClose }) {
-  const [activeProjectId, setActiveProjectId] = useState(null)
+export default function PanelOverlay({ planet, visible, onClose }: PanelOverlayProps) {
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
   const show = planet && (visible ?? true)
 
   useEffect(() => {
     setActiveProjectId(null)
   }, [planet])
 
-  const activeProject = planet?.panel?.projects?.find((project) => project.id === activeProjectId) || null
+  const activeProject: Project | null =
+    planet?.panel?.projects?.find((project) => project.id === activeProjectId) ?? null
 
   return (
     <AnimatePresence>
@@ -52,7 +61,7 @@ export default function PanelOverlay({ planet, visible, onClose }) {
                     <div className="tier-name">{tier.name}</div>
                     <div className="tier-price">{tier.price}</div>
                     <ul>
-                      {tier.features.map((f) => (
+                      {tier.features.map((f: string) => (
                         <li key={f}>{f}</li>
                       ))}
                     </ul>
@@ -119,7 +128,7 @@ export default function PanelOverlay({ planet, visible, onClose }) {
                 </div>
 
                 <ul className="project-detail-list">
-                  {activeProject.detail.highlights.map((item) => (
+                  {activeProject.detail.highlights.map((item: string) => (
                     <li key={item}>{item}</li>
                   ))}
                 </ul>

@@ -1,9 +1,9 @@
 import { Suspense, lazy, useState } from 'react'
-import DitherCanvas from './components/DitherCanvas.jsx'
-import MobileNav from './components/MobileNav.jsx'
-import PanelOverlay from './components/PanelOverlay.jsx'
-import { DESKTOP_QUERY, useMediaQuery } from './hooks/useMediaQuery.js'
-import { PLANETS } from './data/planets.js'
+import DitherCanvas from './components/DitherCanvas'
+import MobileNav from './components/MobileNav'
+import PanelOverlay from './components/PanelOverlay'
+import { DESKTOP_QUERY, useMediaQuery } from './hooks/useMediaQuery'
+import { PLANETS } from './data/planets'
 import './styles/scene.css'
 
 /**
@@ -17,7 +17,7 @@ const SolarSystem = lazy(() => import('./components/SolarSystem.jsx'))
 
 export default function App() {
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
-  const [navSelectedId, setNavSelectedId] = useState(null)
+  const [navSelectedId, setNavSelectedId] = useState<string | null>(null)
   const navSelectedPlanet = PLANETS.find((p) => p.id === navSelectedId) || null
 
   return (

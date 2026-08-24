@@ -1,6 +1,8 @@
-// Content only — orbital elements and render sizes live with the scene, in
-// ThreeSolarSystem's ORBITS table.
-export const PLANETS = [
+// Content only. Orbital elements and render sizes live in
+// src/orbital/elements.ts, keyed by the same ids.
+import type { PlanetContent } from './types'
+
+export const PLANETS: readonly PlanetContent[] = [
   {
     id: 'work',
     label: 'Work',
