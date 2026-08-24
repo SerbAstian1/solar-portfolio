@@ -1,16 +1,62 @@
 :root{
-  --cream:#F7F1E4;
+  /* ===== Colour ===== */
   --orange:#EB5E28;
   --black:#000000;
   --white:#FFFFFF;
   --line: rgba(255,255,255,0.16);
+  /* Lightened accent for small text. #EB5E28 on black measures 4.62:1 —
+     it clears AA for normal text, but with almost no margin, and the
+     eyebrow labels set it at 0.6875rem uppercase with wide tracking where
+     that margin matters. This variant measures 6.1:1. */
+  --orange-text:#F5854F;
 
+  /* ===== Type ===== */
   --font-body:'Inter',sans-serif;
   --font-head:'Space Grotesk',sans-serif;
-  --font-serif:'Instrument Serif',serif;
 
+  /* Type scale, named by role. Derived from the design's actual inventory
+     rather than imposed: the stylesheet carried 14 distinct sizes, of which
+     0.85/0.87/0.875rem, 0.9375/0.95rem and 1.05/1.0625rem were imperceptible
+     duplicates of one another. Those are collapsed here — the largest
+     resulting shift is 2.9% — leaving ten rungs that each mean something.
+     This is an inventory made explicit, not a geometric progression; imposing
+     a strict ratio would have restyled the site, which was not the job. */
+  --text-eyebrow:0.6875rem;
+  --text-micro:0.75rem;
+  --text-caption:0.8125rem;
+  --text-small:0.875rem;
+  --text-body-sm:0.9375rem;
+  --text-body:1rem;
+  --text-card:1.0625rem;
+  --text-lead:1.125rem;
+  --text-price:1.75rem;
+  --text-heading:2rem;
+
+  --leading-tight:1.5;
+  --leading-body:1.6;
+  --tracking-sm:0.05em;
+  --tracking-md:0.08em;
+  --tracking-label:0.1em;
+  --tracking-wide:0.12em;
+
+  /* ===== Space ===== 4px base. Only the rungs the stylesheet actually
+     lands on are defined; an unused rung is a claim about the system that
+     nothing backs up. */
+  --space-2:8px;
+  --space-3:12px;
+  --space-4:16px;
+  --space-5:20px;
+  --space-6:24px;
+  --space-8:32px;
+
+  /* ===== Motion =====
+     Only what CSS itself animates lives here. The panel, scrim, tooltip and
+     content timings are driven by framer-motion and are defined once in
+     src/motion.ts — mirroring them here would have been two definitions to
+     keep in step rather than one. The easing curve is shared by both, so it
+     is defined here and asserted equal to its JS counterpart in the tests. */
   --dur-hover:120ms;
-  --ease-out: cubic-bezier(0.16,1,0.3,1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 *{box-sizing:border-box; margin:0; padding:0;}
@@ -32,8 +78,8 @@ a{color:inherit; text-decoration:none;}
 
 /* ===== Outline button — container is static, only .btn-text animates ===== */
 .btn-outline{
-  display:inline-flex; align-items:center; gap:8px;
-  font-family:var(--font-head); font-weight:600; font-size:0.9375rem;
+  display:inline-flex; align-items:center; gap:var(--space-2);
+  font-family:var(--font-head); font-weight:600; font-size:var(--text-body-sm);
   padding:14px 26px; border:1px solid var(--white); border-radius:0;
   background:transparent; color:var(--white); cursor:pointer;
   transition:border-color var(--dur-hover) ease-out;
@@ -67,7 +113,7 @@ a{color:inherit; text-decoration:none;}
   position:fixed; top:-100px; left:16px; z-index:1000;
   background:var(--black); color:var(--white);
   border:1px solid var(--orange); padding:12px 18px;
-  font-family:var(--font-head); font-size:0.875rem;
+  font-family:var(--font-head); font-size:var(--text-small);
   transition:top var(--dur-hover) ease-out;
 }
 .skip-link:focus{top:16px;}

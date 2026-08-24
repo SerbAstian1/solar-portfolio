@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { PlanetContent, Project } from '../data/types'
 import { useFocusTrap } from '../hooks/useFocusTrap'
+import { DURATION, EASE_OUT_EXPO } from '../motion'
 import OutlineButton from './OutlineButton'
 
 interface PanelOverlayProps {
@@ -14,8 +15,6 @@ interface PanelOverlayProps {
   activeProjectId?: string | null
   onActiveProjectChange?: (id: string | null) => void
 }
-
-const PANEL_EASE = [0.16, 1, 0.3, 1]
 
 export default function PanelOverlay({
   planet,
@@ -51,7 +50,7 @@ export default function PanelOverlay({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.35, ease: PANEL_EASE }}
+            transition={{ duration: DURATION.scrim, ease: EASE_OUT_EXPO }}
             onClick={onClose}
           />
           {/* Step 4 — glass panel fades up and scales into view */}
@@ -64,7 +63,7 @@ export default function PanelOverlay({
             initial={{ opacity: 0, y: 24, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.98 }}
-            transition={{ duration: 0.45, ease: PANEL_EASE }}
+            transition={{ duration: DURATION.panel, ease: EASE_OUT_EXPO }}
           >
             <button className="panel-close" aria-label="Close panel" onClick={onClose}>
               Close ✕
@@ -114,7 +113,7 @@ export default function PanelOverlay({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
-                transition={{ duration: 0.3, ease: PANEL_EASE }}
+                transition={{ duration: DURATION.content, ease: EASE_OUT_EXPO }}
               >
                 <div className="project-detail-header">
                   <div className="project-tag">{activeProject.type}</div>
