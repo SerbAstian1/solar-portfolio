@@ -22,7 +22,7 @@ import {
   worldPositionAt,
 } from '../orbital'
 import type { CameraTarget, CelestialBody, Spring } from '../orbital'
-import { DESKTOP_QUERY, useMediaQuery } from '../hooks/useMediaQuery'
+import { useReducedMotion } from '../hooks/useMediaQuery'
 import { lerp, OPEN_PHASES, phaseProgress } from '../utils/transitionEasing'
 
 type TransitionRef = MutableRefObject<TransitionState>
@@ -160,7 +160,7 @@ const CAMERA_RESPONSE = 0.85
 function CameraRig({ transitionRef, systemScale }: CameraRigProps) {
   const { camera: rawCamera, size } = useThree()
   const camera = rawCamera as THREE.OrthographicCamera
-  const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
+  const reducedMotion = useReducedMotion()
 
   const springs = useRef(createSpring3(OVERVIEW_TARGET.x, OVERVIEW_TARGET.y))
   const zoomSpring = useRef<Spring>({ value: OVERVIEW_TARGET.zoom, velocity: 0 })
@@ -181,7 +181,7 @@ function CameraRig({ transitionRef, systemScale }: CameraRigProps) {
 
     let target: CameraTarget = OVERVIEW_TARGET
     if (body) {
-      worldPositionAt(body, clock.elapsedTime, world.current)
+      worldPositionAt(body, reducedMotion ? 0 : clock.elapsedTime, world.current)
       target = focusTarget({
         worldX: world.current.x,
         worldY: world.current.y,
@@ -406,6 +406,7 @@ function Planet({
   const labelRef = useRef<HTMLSpanElement | null>(null)
   const isSelected = selectedId === data.id
   const isDisabled = isLocked
+  const reducedMotion = useReducedMotion()
 
   useEffect(() => {
     planetRefs.current[data.id] = orbitRef.current
@@ -417,7 +418,11 @@ function Planet({
   useFrame(({ clock }) => {
     if (!orbitRef.current) return
 
-    const meanAnomaly = meanAnomalyAt(orbit, clock.elapsedTime)
+    // Frozen at t=0 for reduced motion: bodies keep their distinct starting
+    // anomalies, so the system still reads as a system — it simply stops
+    // being a full-viewport field of moving objects.
+    const t = reducedMotion ? 0 : clock.elapsedTime
+    const meanAnomaly = meanAnomalyAt(orbit, t)
     orbitPosition(
       orbit,
       eccentricAnomaly(meanAnomaly, orbit.eccentricity),
@@ -425,7 +430,7 @@ function Planet({
     )
 
     if (spinRef.current) {
-      spinRef.current.rotation.y = (clock.elapsedTime / orbit.spin) * TAU
+      spinRef.current.rotation.y = (t / orbit.spin) * TAU
     }
 
     const tr = transitionRef.current
@@ -552,6 +557,7 @@ interface SunProps {
 }
 
 function Sun({ onHome, transitionRef, isTransitioning }: SunProps) {
+  const reducedMotion = useReducedMotion()
   const groupRef = useRef<THREE.Group | null>(null)
   const { scene } = useGLTF('/sun3d.glb') as unknown as { scene: THREE.Group }
   const model = useMemo(() => scene.clone(true), [scene])
@@ -564,7 +570,7 @@ function Sun({ onHome, transitionRef, isTransitioning }: SunProps) {
 
   useFrame(({ clock }) => {
     if (!groupRef.current) return
-    groupRef.current.rotation.y = (clock.elapsedTime / SUN_ROTATION_PERIOD) * Math.PI * 2
+    groupRef.current.rotation.y = ((reducedMotion ? 0 : clock.elapsedTime) / SUN_ROTATION_PERIOD) * TAU
     const progress = transitionRef.current.progress
     const fadeT = phaseProgress(progress, 0, OPEN_PHASES.approach)
     setModelOpacity(groupRef.current, lerp(1, DISTANT_OPACITY, fadeT))

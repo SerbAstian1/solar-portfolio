@@ -30,3 +30,16 @@ export function useMediaQuery(query: string): boolean {
 
 /** Matches the 820px breakpoint the stylesheet already uses. */
 export const DESKTOP_QUERY = '(min-width: 821px)'
+
+export const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)'
+
+/**
+ * True when the visitor has asked the operating system for less motion.
+ *
+ * The scene is a full-viewport field of moving objects, which is the exact
+ * case this preference exists for, so it gates orbital motion and axial spin
+ * as well as the camera.
+ */
+export function useReducedMotion(): boolean {
+  return useMediaQuery(REDUCED_MOTION_QUERY)
+}

@@ -27,7 +27,22 @@ export default function App() {
 
   return (
     <>
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
+
       <DitherCanvas />
+
+      {/* Exactly one h1 at every viewport. The scene branch has no visible
+          heading of its own, so the document previously started at h2 on
+          desktop — a WCAG structure failure and an SEO one on a page that
+          already ships little crawlable copy. MobileNav supplies the visible
+          h1 on small screens. */}
+      {isDesktop && (
+        <h1 className="visually-hidden">
+          AW. — Akagha Wisdom Creative Studio: brand and digital work
+        </h1>
+      )}
 
       {/* Keyboard and screen-reader navigation, reachable at every viewport.
           These are real links to real URLs, so they work with middle-click,

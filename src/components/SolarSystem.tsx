@@ -78,7 +78,7 @@ export default function SolarSystem({ sectionId, navigate }: SolarSystemProps) {
   const selectedPlanet = PLANETS.find((p) => p.id === selectedId) || null
 
   return (
-    <main className="scene">
+    <main className="scene" id="main-content">
       <div className="scene-star-dim" ref={starDimRef} aria-hidden="true" />
 
       <ThreeSolarSystem

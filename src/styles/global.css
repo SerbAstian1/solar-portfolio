@@ -57,3 +57,20 @@ a{color:inherit; text-decoration:none;}
 @media(prefers-reduced-motion: reduce){
   *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
 }
+
+/* ===== Accessibility utilities ===== */
+.visually-hidden{
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;
+}
+.skip-link{
+  position:fixed; top:-100px; left:16px; z-index:1000;
+  background:var(--black); color:var(--white);
+  border:1px solid var(--orange); padding:12px 18px;
+  font-family:var(--font-head); font-size:0.875rem;
+  transition:top var(--dur-hover) ease-out;
+}
+.skip-link:focus{top:16px;}
+/* Focus is moved to the panel heading on open; it must not paint an outline
+   there, but every genuinely interactive element still shows one. */
+[tabindex="-1"]:focus{outline:none;}

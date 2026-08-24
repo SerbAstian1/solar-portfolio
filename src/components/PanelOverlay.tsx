@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { PlanetContent, Project } from '../data/types'
+import { useFocusTrap } from '../hooks/useFocusTrap'
 import OutlineButton from './OutlineButton'
 
 interface PanelOverlayProps {
@@ -14,7 +15,10 @@ const PANEL_EASE = [0.16, 1, 0.3, 1]
 
 export default function PanelOverlay({ planet, visible, onClose }: PanelOverlayProps) {
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
-  const show = planet && (visible ?? true)
+  const panelRef = useRef<HTMLDivElement | null>(null)
+  const show = Boolean(planet) && (visible ?? true)
+
+  useFocusTrap(panelRef, show, onClose)
 
   useEffect(() => {
     setActiveProjectId(null)
@@ -25,7 +29,7 @@ export default function PanelOverlay({ planet, visible, onClose }: PanelOverlayP
 
   return (
     <AnimatePresence>
-      {show && (
+      {show && planet && (
         <motion.div className="panel-overlay is-open">
           <motion.div
             className="panel-scrim"
@@ -37,6 +41,7 @@ export default function PanelOverlay({ planet, visible, onClose }: PanelOverlayP
           />
           {/* Step 4 — glass panel fades up and scales into view */}
           <motion.div
+            ref={panelRef}
             className="panel panel-glass"
             role="dialog"
             aria-modal="true"
