@@ -8,12 +8,14 @@ import PanelOverlay from './PanelOverlay'
 import ThreeSolarSystem from './ThreeSolarSystem'
 
 export interface SolarSystemProps {
+  /** Spatial mode for this viewport; drives label density. */
+  mode?: 'full' | 'compact'
   /** Routed section. App owns the URL; this component renders whatever it says. */
   sectionId: string | null
   navigate: (id: string | null) => void
 }
 
-export default function SolarSystem({ sectionId, navigate }: SolarSystemProps) {
+export default function SolarSystem({ sectionId, navigate, mode = 'full' }: SolarSystemProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   /* Owned here so a moon click and a project card select the same thing.
      Project moon ids are the project ids, which is what lets the two
@@ -111,6 +113,7 @@ export default function SolarSystem({ sectionId, navigate }: SolarSystemProps) {
         }}
         onSelect={(id: string) => navigate(id)}
         onSelectProject={setActiveProjectId}
+        mode={mode}
         onHome={() => navigate(null)}
       />
 

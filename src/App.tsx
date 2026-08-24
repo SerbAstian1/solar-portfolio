@@ -2,7 +2,7 @@ import { Suspense, lazy } from 'react'
 import DitherCanvas from './components/DitherCanvas'
 import MobileNav from './components/MobileNav'
 import PanelOverlay from './components/PanelOverlay'
-import { DESKTOP_QUERY, useMediaQuery } from './hooks/useMediaQuery'
+import { useSpatialMode } from './hooks/useSpatialMode'
 import { useRouteSection } from './navigation/useRouteSection'
 import { PLANETS } from './data/planets'
 import './styles/scene.css'
@@ -17,7 +17,8 @@ import './styles/scene.css'
 const SolarSystem = lazy(() => import('./components/SolarSystem'))
 
 export default function App() {
-  const isDesktop = useMediaQuery(DESKTOP_QUERY)
+  const mode = useSpatialMode()
+  const hasScene = mode !== 'list'
 
   /* Routing is owned here, once. Both viewport branches and the fallback nav
      read the same section, so a link, a planet click and the back button
@@ -38,7 +39,7 @@ export default function App() {
           desktop — a WCAG structure failure and an SEO one on a page that
           already ships little crawlable copy. MobileNav supplies the visible
           h1 on small screens. */}
-      {isDesktop && (
+      {hasScene && (
         <h1 className="visually-hidden">
           AW. — Akagha Wisdom Creative Studio: brand and digital work
         </h1>
@@ -63,9 +64,13 @@ export default function App() {
         ))}
       </nav>
 
-      {isDesktop ? (
+      {hasScene ? (
         <Suspense fallback={<div className="scene-loading" aria-hidden="true" />}>
-          <SolarSystem sectionId={sectionId} navigate={navigate} />
+          <SolarSystem
+            sectionId={sectionId}
+            navigate={navigate}
+            mode={mode === 'full' ? 'full' : 'compact'}
+          />
         </Suspense>
       ) : (
         <div className="mobile-only">

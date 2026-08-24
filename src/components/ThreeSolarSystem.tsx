@@ -441,6 +441,8 @@ interface PlanetProps {
   isLocked: boolean
   selectedId: string | null
   onSelectProject: (id: string) => void
+  mode: 'full' | 'compact'
+  isHovered: boolean
 }
 
 function Planet({
@@ -455,6 +457,8 @@ function Planet({
   isLocked,
   selectedId,
   onSelectProject,
+  mode,
+  isHovered,
 }: PlanetProps) {
   const orbitRef = useRef<THREE.Group | null>(null)
   const visualRef = useRef<THREE.Group | null>(null)
@@ -602,7 +606,7 @@ function Planet({
         center
         style={{
           pointerEvents: 'none',
-          opacity: isSelected ? 0 : 1,
+          opacity: isSelected ? 0 : mode === 'compact' && !isHovered ? 0 : 1,
           transition: 'opacity 200ms ease-out',
         }}
       >
@@ -657,6 +661,9 @@ export interface SceneProps {
   onHome: () => void
   onSelectProject: (id: string) => void
   previewRef: MutableRefObject<HTMLDivElement | null>
+  /** 'compact' viewports draw labels only for the hovered or open body —
+   *  five permanent labels over a tightened system is unreadable clutter. */
+  mode: 'full' | 'compact'
 }
 
 function Scene({
@@ -671,6 +678,7 @@ function Scene({
   onHome,
   onSelectProject,
   previewRef,
+  mode,
 }: SceneProps) {
   const planetRefs: PlanetRefs = useRef({})
   const modelRefs: ModelRefs = useRef({})
@@ -708,6 +716,8 @@ function Scene({
               isLocked={isLocked}
               selectedId={selectedId}
               onSelectProject={onSelectProject}
+              mode={mode}
+              isHovered={hoveredId === planet.id}
             />
           ))}
         </group>
