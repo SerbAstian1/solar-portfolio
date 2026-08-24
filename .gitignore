@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssg/
+
+# Local tooling / editor state
+.claude/settings.local.json
+.DS_Store
+*.local
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Test / coverage output
+coverage/

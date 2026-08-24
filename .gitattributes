@@ -1,0 +1,4 @@
+* text=auto eol=lf
+*.glb binary
+*.skill binary
+*.svg text eol=lf

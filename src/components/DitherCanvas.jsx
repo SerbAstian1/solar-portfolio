@@ -1,0 +1,181 @@
+import { useEffect, useRef } from 'react'
+
+// Classic 8x8 Bayer ordered-dither threshold matrix, normalized 0..1
+const BAYER_8 = [
+  0, 32, 8, 40, 2, 34, 10, 42,
+  48, 16, 56, 24, 50, 18, 58, 26,
+  12, 44, 4, 36, 14, 46, 6, 38,
+  60, 28, 52, 20, 62, 30, 54, 22,
+  3, 35, 11, 43, 1, 33, 9, 41,
+  51, 19, 59, 27, 49, 17, 57, 25,
+  15, 47, 7, 39, 13, 45, 5, 37,
+  63, 31, 55, 23, 61, 29, 53, 21,
+].map((v) => v / 64)
+
+function pseudoNoise(x, y, t) {
+  // Cheap layered sine "noise" — deterministic, fast, good enough for animated grain.
+  const n =
+    Math.sin(x * 0.021 + t * 0.00012) * Math.cos(y * 0.017 - t * 0.00009) * 0.5 +
+    Math.sin((x + y) * 0.011 + t * 0.00021) * 0.5
+  return (n + 1) / 2 // 0..1
+}
+
+/**
+ * Renders a true ordered-dither field to a low-res offscreen canvas each frame,
+ * then blits it up with nearest-neighbor scaling for a chunky, print-halftone look.
+ * Stars and comets are drawn as a separate crisp layer on top.
+ */
+export default function DitherCanvas({ sunPos = { x: 0.5, y: 0.42 } }) {
+  const canvasRef = useRef(null)
+  const rafRef = useRef(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    const ctx = canvas.getContext('2d')
+
+    const DITHER_SCALE = 12 // smaller scale = tighter, denser grain
+    let low, lctx, w, h, lw, lh
+    let stars = []
+    let comets = []
+
+    function resize() {
+      w = window.innerWidth
+      h = window.innerHeight
+      canvas.width = w
+      canvas.height = h
+      lw = Math.ceil(w / DITHER_SCALE)
+      lh = Math.ceil(h / DITHER_SCALE)
+      low = document.createElement('canvas')
+      low.width = lw
+      low.height = lh
+      lctx = low.getContext('2d')
+
+      stars = Array.from({ length: 160 }, () => ({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        r: Math.random() * 1.4 + 0.4,
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.0015 + Math.random() * 0.002,
+      }))
+      comets = Array.from({ length: 2 }, (_, i) => makeComet(i))
+    }
+
+    function makeComet(seed) {
+      return {
+        x: w * (0.5 + Math.random() * 0.4),
+        y: h * (0.05 + Math.random() * 0.3),
+        vx: -(2.2 + Math.random() * 1.4),
+        vy: 1.1 + Math.random() * 0.9,
+        life: 0,
+        maxLife: 140 + Math.random() * 80,
+        delay: seed * 300 + Math.random() * 400,
+      }
+    }
+
+    function drawDitherField(t) {
+      const imgData = lctx.createImageData(lw, lh)
+      const cx = lw * sunPos.x
+      const cy = lh * sunPos.y
+      for (let y = 0; y < lh; y++) {
+        for (let x = 0; x < lw; x++) {
+          const dx = (x - cx) / lw
+          const dy = (y - cy) / lh
+          const dist = Math.sqrt(dx * dx + dy * dy)
+          const glow = Math.max(0, 1 - dist * 1.6) // brighter near sun
+          const noise = pseudoNoise(x, y, t)
+          const value = Math.min(1, glow * 0.55 + noise * 0.3)
+
+          const bx = x % 8
+          const by = y % 8
+          const threshold = BAYER_8[by * 8 + bx]
+          const on = value > threshold
+
+          const idx = (y * lw + x) * 4
+          if (on) {
+            imgData.data[idx] = 255
+            imgData.data[idx + 1] = 255
+            imgData.data[idx + 2] = 255
+            imgData.data[idx + 3] = Math.min(18, glow * 27) // softer, subtler grain
+          } else {
+            imgData.data[idx + 3] = 0
+          }
+        }
+      }
+      lctx.putImageData(imgData, 0, 0)
+    }
+
+    function draw(t) {
+      ctx.imageSmoothingEnabled = false
+      ctx.fillStyle = '#000'
+      ctx.fillRect(0, 0, w, h)
+
+      drawDitherField(t)
+      ctx.drawImage(low, 0, 0, lw, lh, 0, 0, w, h)
+
+      // Stars
+      stars.forEach((s) => {
+        const tw = 0.35 + 0.65 * Math.abs(Math.sin(t * s.speed + s.phase))
+        ctx.globalAlpha = tw
+        ctx.fillStyle = '#fff'
+        ctx.beginPath()
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2)
+        ctx.fill()
+      })
+      ctx.globalAlpha = 1
+
+      // Comets
+      comets.forEach((c, i) => {
+        c.life += 1
+        if (c.life < c.delay) return
+        const localLife = c.life - c.delay
+        if (localLife > c.maxLife) {
+          comets[i] = makeComet(i)
+          return
+        }
+        const progress = localLife / c.maxLife
+        const cx2 = c.x + c.vx * localLife
+        const cy2 = c.y + c.vy * localLife
+        const alpha = Math.sin(progress * Math.PI) // fade in/out
+        const grad = ctx.createLinearGradient(cx2, cy2, cx2 - c.vx * 26, cy2 - c.vy * 26)
+        grad.addColorStop(0, `rgba(255,255,255,${alpha})`)
+        grad.addColorStop(1, 'rgba(255,255,255,0)')
+        ctx.strokeStyle = grad
+        ctx.lineWidth = 1.4
+        ctx.beginPath()
+        ctx.moveTo(cx2, cy2)
+        ctx.lineTo(cx2 - c.vx * 26, cy2 - c.vy * 26)
+        ctx.stroke()
+        ctx.fillStyle = `rgba(255,255,255,${alpha})`
+        ctx.beginPath()
+        ctx.arc(cx2, cy2, 1.6, 0, Math.PI * 2)
+        ctx.fill()
+      })
+
+      rafRef.current = requestAnimationFrame(draw)
+    }
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    resize()
+    window.addEventListener('resize', resize)
+
+    if (reduceMotion) {
+      draw(0) // single static frame, no animation loop
+    } else {
+      rafRef.current = requestAnimationFrame(draw)
+    }
+
+    return () => {
+      cancelAnimationFrame(rafRef.current)
+      window.removeEventListener('resize', resize)
+    }
+  }, [sunPos.x, sunPos.y])
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{ position: 'fixed', inset: 0, zIndex: 0, display: 'block' }}
+      aria-hidden="true"
+    />
+  )
+}
