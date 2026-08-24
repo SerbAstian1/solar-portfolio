@@ -2,7 +2,6 @@ import {
   BASE_PERIOD,
   BASE_SEMI_MAJOR,
   KEPLER_ITERATIONS,
-  ORBIT_DEPTH,
   ORBIT_TILT,
   PERIHELION_COS,
   PERIHELION_SIN,
@@ -62,9 +61,13 @@ export function orbitPosition<T extends MutableVec3>(
   const planar = alongMajor * PERIHELION_COS - alongMinor * PERIHELION_SIN
   const depth = alongMajor * PERIHELION_SIN + alongMinor * PERIHELION_COS
 
+  // Per-body inclination, falling back to the shared plane. The pair is
+  // (sin i, cos i), so the body's distance from the star is unchanged and only
+  // its orientation to the camera differs.
+  const inclination = elements.inclination ?? ORBIT_TILT
   target.x = planar
-  target.y = depth * ORBIT_TILT
-  target.z = depth * ORBIT_DEPTH
+  target.y = depth * inclination
+  target.z = depth * Math.sqrt(Math.max(0, 1 - inclination ** 2))
   return target
 }
 

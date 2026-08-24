@@ -8,28 +8,40 @@ import type { CelestialBody } from './types'
  * each deriving their own. Values are preserved exactly from the original
  * ORBITS table — this was a move, not a retune.
  *
- * TRANSITS. With ORBIT_TILT at 0.38, only the innermost body ever crosses the
- * star's apparent disk. Measured over a full orbit against a 69-unit star:
+ * TRANSITS. The projected orbit is an ellipse of semi-axes a x a*inclination
+ * centred on the star, and a body sits highest on screen exactly when it is
+ * nearest the camera — so inclination alone decides whether it can cross the
+ * stellar disk. Against a 69-unit star:
  *
- *   work      peak coverage 4.35% (of 6.07% possible)  5.69s per 48.0s orbit
- *   services  never crosses
- *   about     never crosses
- *   pricing   never crosses
- *   contact   never crosses
+ *   work      inclination 0.24, projected minor 40.8  -> crosses the face
+ *   services  0.38, projected minor  95.0             -> never reaches it
+ *   about     0.38, projected minor 125.4             -> never reaches it
+ *   pricing   0.38, projected minor 155.8             -> never reaches it
+ *   contact   0.38, projected minor 186.2             -> never reaches it
  *
- * Work grazes rather than fully entering, which is why its peak falls short
- * of the (Rp/R*)^2 ceiling — it clips the edge and its light curve has no
- * flat bottom. This is a consequence of the tilt, not an oversight: a
- * shallower plane would put more bodies across the disk but would flatten
- * every orbit toward a line, which is the look the tilt was chosen to avoid.
- * ORBIT_TILT in constants.ts is the lever if more transits are ever wanted.
+ * Only the inner body transits, which is deliberate: it makes the event
+ * belong to one planet rather than becoming ambient. Lowering ORBIT_TILT
+ * globally would give the outer planets transits too, at the cost of
+ * flattening every orbit toward a line.
  *
  * Moons carry `parentId`. Only Work has real children (four projects), so
  * only Work has moons; inventing satellites for the other four sections
  * would be decoration pretending to be structure.
  */
 export const BODIES: readonly CelestialBody[] = [
-  { id: 'work', semiMajor: 170, eccentricity: 0.055, meanAnomaly: 1.6, spin: 11, axialTilt: 0.24, size: 34 },
+  /* Work carries a shallower inclination than the rest of the system, and
+     that is what makes it the transiting planet. At the shared 0.38 its
+     projected orbit had a semi-minor axis of 64.6 against a stellar radius
+     of 69: the planet reached only 62.5 from the star's centre at its
+     nearest approach in front, so it clipped the top limb and never crossed
+     the face. At 0.24 the projected minor axis is 40.8, inside R - r = 52,
+     so the disk is fully entered and the light curve gains a flat bottom. */
+  /* meanAnomaly is chosen so the first transit peaks about 12s after load,
+     rather than the 42.5s the old phase gave. The phase at t=0 is free — the
+     transit still emerges from the geometry either way — so it may as well be
+     set where a visitor will actually witness the system's signature event.
+     It then repeats every 48s. */
+  { id: 'work', semiMajor: 170, eccentricity: 0.055, meanAnomaly: 5.5924, inclination: 0.24, spin: 11, axialTilt: 0.24, size: 34 },
   { id: 'services', semiMajor: 250, eccentricity: 0.045, meanAnomaly: 0.7, spin: 15, axialTilt: -0.16, size: 46 },
   { id: 'about', semiMajor: 330, eccentricity: 0.04, meanAnomaly: 3.9, spin: 9, axialTilt: 0.41, size: 30 },
   { id: 'pricing', semiMajor: 410, eccentricity: 0.035, meanAnomaly: 2.3, spin: 19, axialTilt: -0.3, size: 52 },

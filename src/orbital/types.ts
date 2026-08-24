@@ -27,6 +27,19 @@ export interface OrbitalElements {
   /** Position along the orbit at t=0, radians. */
   readonly meanAnomaly: number
   /**
+   * Sine of this orbit's inclination to the view plane. Defaults to the
+   * system-wide ORBIT_TILT.
+   *
+   * Per-body because the projected orbit is an ellipse of semi-axes
+   * a x a*inclination centred on the star, so inclination alone decides
+   * whether a body can cross the stellar disk at all: it is highest on
+   * screen exactly when it is nearest the camera. At the shared 0.38, the
+   * inner planet's projected minor axis is 64.6 against a stellar radius of
+   * 69 — it clipped the top limb and never crossed the face.
+   */
+  readonly inclination?: number
+
+  /**
    * Parent body this orbits. Absent means it orbits the star.
    * A moon's world position is its parent's world position plus its own
    * local orbit — see hierarchy.ts.

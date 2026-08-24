@@ -47,12 +47,29 @@ describe('the real system produces a real transit', () => {
     expect(peak).toBeLessThanOrEqual(maxPossible + 1e-12)
   })
 
+  it('fully enters the disk rather than clipping the limb', () => {
+    // The defect this pins: at the system-wide 0.38 inclination the planet's
+    // projected orbit had a semi-minor axis of 64.6 against a stellar radius
+    // of 69, so its nearest approach in front was 62.5 — inside the limb but
+    // never inside R - r. It grazed the top edge and never crossed the face,
+    // which is what made the event look wrong. A full transit requires the
+    // separation to fall below R - r, and the light curve to flat-bottom at
+    // the disk-area ratio rather than peaking short of it.
+    const body = getBody('work')!
+    const r = body.size / 2
+    const minSeparation = Math.min(...samples.map((s) => s.transit.separation))
+    expect(minSeparation).toBeLessThan(STAR_RADIUS - r)
+    expect(peak).toBeCloseTo((r / STAR_RADIUS) ** 2, 6)
+    expect(samples.some((s) => s.transit.state === 'full-transit')).toBe(true)
+  })
+
   it('passes through ingress and egress around the deepest point', () => {
     const order: OccultationState[] = []
     for (const { transit } of samples) {
       if (order[order.length - 1] !== transit.state) order.push(transit.state)
     }
     expect(order).toContain('ingress')
+    expect(order).toContain('full-transit')
     expect(order).toContain('egress')
     // Whatever the sequence, it has to begin and end away from the disk.
     expect(order[0]).toBe('clear')
