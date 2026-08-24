@@ -1,3 +1,4 @@
+export * from './camera'
 export * from './constants'
 export * from './elements'
 export * from './hierarchy'

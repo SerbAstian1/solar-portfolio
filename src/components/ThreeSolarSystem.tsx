@@ -7,19 +7,22 @@ import type { TransitionState } from '../hooks/usePlanetNavigation'
 import type { PlanetContent } from '../data/types'
 import { PLANETS } from '../data/planets'
 import {
-  BASE_PERIOD,
-  BASE_SEMI_MAJOR,
-  ORBIT_DEPTH,
-  ORBIT_TILT,
+  OVERVIEW_TARGET,
   PLANET_BODIES,
   TAU,
+  createSpring3,
   eccentricAnomaly,
+  focusTarget,
   getBody,
   meanAnomalyAt,
+  omegaFromResponse,
   orbitPosition,
-  orbitalPeriod,
+  panelWidthFor,
+  stepSpring,
+  worldPositionAt,
 } from '../orbital'
-import type { CelestialBody } from '../orbital'
+import type { CameraTarget, CelestialBody, Spring } from '../orbital'
+import { DESKTOP_QUERY, useMediaQuery } from '../hooks/useMediaQuery'
 import { lerp, OPEN_PHASES, phaseProgress } from '../utils/transitionEasing'
 
 type TransitionRef = MutableRefObject<TransitionState>
@@ -31,7 +34,7 @@ const SUN_RADIUS = SUN_SIZE / 2
 const SUN_ROTATION_PERIOD = 70
 const SUN_OCCLUSION_SOFTNESS = 26
 
-const SELECTED_SCALE = 2.5
+const SELECTED_EMPHASIS_SCALE = 1.25
 const DISTANT_OPACITY = 0.45
 const ORBIT_OPACITY_REST = 0.26
 const ORBIT_OPACITY_DIM = 0.08
@@ -128,15 +131,40 @@ function setModelOpacity(object: THREE.Object3D, opacity: number): void {
   })
 }
 
-interface PixelCameraProps {
+interface CameraRigProps {
   transitionRef: TransitionRef
-  planetRefs: PlanetRefs
+  systemScale: number
 }
 
-function PixelCamera({ transitionRef, planetRefs }: PixelCameraProps) {
+/**
+ * The camera, as a first-class system.
+ *
+ * Replaces the previous "drift": that multiplied the selected planet's
+ * position by hard-coded factors (0.22, 0.12), had no zoom, and eased home
+ * with lerp(pos, 0, 0.12) evaluated per frame — which converged twice as
+ * fast on a 120Hz display as on a 60Hz one.
+ *
+ * Now three critically damped springs carry x, y and zoom toward a target
+ * computed by focusTarget(). Because the spring is the closed-form solution
+ * it is exactly frame-rate independent, it never overshoots from rest, and
+ * it can be redirected mid-flight — clicking Services while the Work
+ * approach is still travelling continues from the current position and
+ * velocity rather than restarting.
+ *
+ * The focused body's position comes from the orbital core rather than from
+ * the scene graph, so the camera does not depend on render order and stays
+ * deterministic.
+ */
+const CAMERA_RESPONSE = 0.85
+
+function CameraRig({ transitionRef, systemScale }: CameraRigProps) {
   const { camera: rawCamera, size } = useThree()
   const camera = rawCamera as THREE.OrthographicCamera
-  const driftTarget = useRef(new THREE.Vector3())
+  const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
+
+  const springs = useRef(createSpring3(OVERVIEW_TARGET.x, OVERVIEW_TARGET.y))
+  const zoomSpring = useRef<Spring>({ value: OVERVIEW_TARGET.zoom, velocity: 0 })
+  const world = useRef(new THREE.Vector3())
 
   useEffect(() => {
     camera.left = -size.width / 2
@@ -146,39 +174,52 @@ function PixelCamera({ transitionRef, planetRefs }: PixelCameraProps) {
     camera.updateProjectionMatrix()
   }, [camera, size.height, size.width])
 
-  useFrame(() => {
+  useFrame(({ clock }, delta) => {
     const tr = transitionRef.current
-    const progress = tr.progress
-    const selectedId = tr.targetId
+    const focusId = tr.progress > 0 ? tr.targetId : null
+    const body = focusId === null ? undefined : getBody(focusId)
 
-    let driftAmount = 0
-    if (selectedId && progress > 0) {
-      // Step 2 — subtle camera drift toward the selected planet.
-      const approachT = phaseProgress(progress, 0, OPEN_PHASES.approach)
-      const repositionT = phaseProgress(progress, OPEN_PHASES.approach, OPEN_PHASES.reposition)
-      driftAmount = Math.max(approachT, repositionT)
-
-      const planetGroup = planetRefs.current[selectedId]
-      if (planetGroup) {
-        planetGroup.getWorldPosition(driftTarget.current)
-        const targetX = driftTarget.current.x * 0.22
-        const targetY = driftTarget.current.y * 0.12
-        camera.position.x = lerp(0, targetX, driftAmount)
-        camera.position.y = lerp(0, targetY, driftAmount)
-      }
-    } else {
-      camera.position.x = lerp(camera.position.x, 0, 0.12)
-      camera.position.y = lerp(camera.position.y, 0, 0.12)
+    let target: CameraTarget = OVERVIEW_TARGET
+    if (body) {
+      worldPositionAt(body, clock.elapsedTime, world.current)
+      target = focusTarget({
+        worldX: world.current.x,
+        worldY: world.current.y,
+        bodySize: body.size,
+        systemScale,
+        viewportWidth: size.width,
+        viewportHeight: size.height,
+        panelWidth: panelWidthFor(size.width),
+      })
     }
 
-    // Step 4+ — camera stops once panel phase begins.
-    if (progress >= OPEN_PHASES.reposition) {
-      const planetGroup = selectedId ? planetRefs.current[selectedId] : null
-      if (planetGroup) {
-        planetGroup.getWorldPosition(driftTarget.current)
-        camera.position.x = driftTarget.current.x * 0.22
-        camera.position.y = driftTarget.current.y * 0.12
-      }
+    if (reducedMotion) {
+      // Someone who asked for less motion still needs the destination, just
+      // not the journey. Snap, and keep velocities at rest so a later
+      // preference change does not inherit stale momentum.
+      springs.current.x.value = target.x
+      springs.current.y.value = target.y
+      zoomSpring.current.value = target.zoom
+      springs.current.x.velocity = 0
+      springs.current.y.velocity = 0
+      zoomSpring.current.velocity = 0
+    } else {
+      // delta is clamped because a tab returning from the background reports
+      // one enormous frame, and teleporting the camera is worse than a
+      // slightly slow catch-up.
+      const dt = Math.min(delta, 1 / 20)
+      const omega = omegaFromResponse(CAMERA_RESPONSE)
+      stepSpring(springs.current.x, target.x, omega, dt)
+      stepSpring(springs.current.y, target.y, omega, dt)
+      stepSpring(zoomSpring.current, target.zoom, omega, dt)
+    }
+
+    camera.position.x = springs.current.x.value
+    camera.position.y = springs.current.y.value
+
+    if (camera.zoom !== zoomSpring.current.value) {
+      camera.zoom = zoomSpring.current.value
+      camera.updateProjectionMatrix()
     }
   })
 
@@ -361,12 +402,10 @@ function Planet({
   const orbitRef = useRef<THREE.Group | null>(null)
   const visualRef = useRef<THREE.Group | null>(null)
   const spinRef = useRef<THREE.Group | null>(null)
-  const offsetRef = useRef(new THREE.Vector3())
   const occludedRef = useRef(false)
   const labelRef = useRef<HTMLSpanElement | null>(null)
   const isSelected = selectedId === data.id
   const isDisabled = isLocked
-  const period = useMemo(() => orbitalPeriod(orbit.semiMajor), [orbit])
 
   useEffect(() => {
     planetRefs.current[data.id] = orbitRef.current
@@ -375,7 +414,7 @@ function Planet({
     }
   }, [data.id, planetRefs])
 
-  useFrame(({ clock, size }) => {
+  useFrame(({ clock }) => {
     if (!orbitRef.current) return
 
     const meanAnomaly = meanAnomalyAt(orbit, clock.elapsedTime)
@@ -410,17 +449,17 @@ function Planet({
         setModelEmphasis(model, highlightT, 0)
       }
 
-      // Step 2 — scale only after highlight phase completes.
-      const scale = progress <= OPEN_PHASES.highlight
+      // The planet no longer translates or scales itself. Framing is the
+      // camera's job now — a body that slides across the system while the
+      // camera also moves is two things faking one, and it breaks the
+      // spatial continuity the transition exists to preserve. A small
+      // emphasis bump remains, because relative prominence is a property of
+      // the body, not of the viewpoint.
+      const emphasisScale = progress <= OPEN_PHASES.highlight
         ? 1
-        : lerp(1, SELECTED_SCALE, approachT)
-      visual.scale.setScalar(scale)
-
-      // Step 3 — drift selected planet toward the left viewport edge.
-      const repositionT = phaseProgress(progress, OPEN_PHASES.approach, OPEN_PHASES.reposition)
-      const leftOffset = lerp(0, -size.width * 0.28, repositionT)
-      offsetRef.current.set(leftOffset, repositionT * 12, 0)
-      visual.position.copy(offsetRef.current)
+        : lerp(1, SELECTED_EMPHASIS_SCALE, approachT)
+      visual.scale.setScalar(emphasisScale)
+      visual.position.set(0, 0, 0)
 
       // Step 5 — settle into atmospheric background element.
       const settleT = phaseProgress(progress, OPEN_PHASES.panel, OPEN_PHASES.settled)
@@ -569,7 +608,7 @@ function Scene({
 
   return (
     <>
-      <PixelCamera transitionRef={transitionRef} planetRefs={planetRefs} />
+      <CameraRig transitionRef={transitionRef} systemScale={systemScale} />
       <PreviewTracker
         hoveredId={hoveredId}
         planetRefs={planetRefs}
