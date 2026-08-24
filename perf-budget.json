@@ -1,7 +1,10 @@
 {
-  "_comment": "Gzipped budgets in KB. entryJs is what every device loads before anything renders — the number that actually gates mobile. sceneJs is the lazily-loaded 3D chunk, desktop only. assets covers public/ binaries shipped with the scene.",
+  "_comment": "Gzipped budgets in KB unless noted. entryJs is what every device loads before anything renders — the number that actually gates mobile. sceneJs is the lazily-loaded 3D chunk, requested only above the 820px breakpoint. assets covers public/ binaries, also desktop-only and off the first-paint path.",
+
+  "_assetsJustification": "1100KB, not the 600KB first drafted. That figure came from the audit's estimate of TEXTURE size after resampling (actual: 622KB) and wrongly treated it as whole-file size; the balance is vertex data. Post-optimization the pair is 1042KB, loaded lazily on desktop only, after first paint, and never on the LCP path — mobile fetches zero bytes of it. Cutting further means KHR_mesh_quantization or mesh decimation for roughly 300KB against real visual risk on spheres, which is not worth it at this position in the load. Revisit only if desktop LCP measures poorly in Phase 11.",
+
   "entryJsGzipKB": 170,
   "sceneJsGzipKB": 260,
   "cssGzipKB": 20,
-  "assetsKB": 600
+  "assetsKB": 1100
 }

@@ -1,10 +1,14 @@
-/* ===== Visibility split ===== */
-.mobile-only{display:none;}
-.desktop-only{display:block;}
-@media (max-width:820px){
-  .desktop-only{display:none;}
-  .mobile-only{display:block; position:relative; z-index:1;}
-}
+/* ===== Viewport branches =====
+   Which branch mounts is decided in App.jsx via matchMedia, not here. A CSS
+   `display:none` split hid the 3D scene on phones without unmounting it, so
+   the WebGL context, the frame loop and ~1MB of models were all still paid
+   for. These rules therefore only position whatever React chose to render. */
+.mobile-only{position:relative; z-index:1;}
+
+/* Holds the scene's space while its chunk loads. No spinner: the dither
+   field is already painted behind it, and a spinner over a starfield reads
+   as a bug rather than as progress. */
+.scene-loading{position:fixed; inset:0; z-index:1; pointer-events:none;}
 
 /* ===== Accessibility fallback nav ===== */
 .visually-hidden-nav{
