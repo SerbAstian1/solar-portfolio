@@ -9,6 +9,8 @@ import { PLANETS } from '../data/planets'
 import {
   OVERVIEW_TARGET,
   PLANET_BODIES,
+  localPositionAt,
+  moonsOf,
   TAU,
   createSpring3,
   eccentricAnomaly,
@@ -374,6 +376,59 @@ function OrbitRing({ orbit, transitionRef }: OrbitRingProps) {
   return <primitive object={line} />
 }
 
+interface MoonProps {
+  body: CelestialBody
+  parentSelected: boolean
+  onSelect: (id: string) => void
+}
+
+/**
+ * A project, orbiting its section.
+ *
+ * Rendered as a child of the parent's orbit group, so the hierarchical
+ * transform — world = parent world + local orbit — is performed by the scene
+ * graph itself rather than recomputed here. hierarchy.ts holds the same
+ * relationship for anything outside the renderer that needs it, notably the
+ * camera, and the two are asserted to agree in the tests.
+ *
+ * Moons mount only while their section is open. At overview zoom they would
+ * be sub-pixel specks, so drawing them there would cost four model instances
+ * to render nothing legible.
+ */
+function Moon({ body, parentSelected, onSelect }: MoonProps) {
+  const groupRef = useRef<THREE.Group | null>(null)
+  const spinRef = useRef<THREE.Group | null>(null)
+  const reducedMotion = useReducedMotion()
+
+  useFrame(({ clock }) => {
+    if (!groupRef.current) return
+    const t = reducedMotion ? 0 : clock.elapsedTime
+    localPositionAt(body, t, groupRef.current.position)
+    if (spinRef.current) spinRef.current.rotation.y = (t / body.spin) * TAU
+  })
+
+  if (!parentSelected) return null
+
+  return (
+    <group ref={groupRef}>
+      <group rotation={[0, 0, body.axialTilt]}>
+        <group ref={spinRef}>
+          <Model url="/planet3d.glb" size={body.size} />
+        </group>
+      </group>
+      <mesh
+        onClick={(event: { stopPropagation: () => void }) => {
+          event.stopPropagation()
+          onSelect(body.id)
+        }}
+      >
+        <sphereGeometry args={[Math.max(body.size / 2 + 8, 14), 10, 10]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+    </group>
+  )
+}
+
 interface PlanetProps {
   data: PlanetContent
   orbit: CelestialBody
@@ -385,6 +440,7 @@ interface PlanetProps {
   modelRefs: ModelRefs
   isLocked: boolean
   selectedId: string | null
+  onSelectProject: (id: string) => void
 }
 
 function Planet({
@@ -398,6 +454,7 @@ function Planet({
   modelRefs,
   isLocked,
   selectedId,
+  onSelectProject,
 }: PlanetProps) {
   const orbitRef = useRef<THREE.Group | null>(null)
   const visualRef = useRef<THREE.Group | null>(null)
@@ -407,6 +464,7 @@ function Planet({
   const isSelected = selectedId === data.id
   const isDisabled = isLocked
   const reducedMotion = useReducedMotion()
+  const moons = useMemo(() => moonsOf(data.id), [data.id])
 
   useEffect(() => {
     planetRefs.current[data.id] = orbitRef.current
@@ -535,6 +593,10 @@ function Planet({
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
       </group>
+      {moons.map((moon) => (
+        <Moon key={moon.id} body={moon} parentSelected={isSelected} onSelect={onSelectProject} />
+      ))}
+
       <Html
         position={[0, orbit.size / 2 + 16, 0]}
         center
@@ -593,6 +655,7 @@ export interface SceneProps {
   onLeave: (planet: PlanetContent) => void
   onSelect: (id: string) => void
   onHome: () => void
+  onSelectProject: (id: string) => void
   previewRef: MutableRefObject<HTMLDivElement | null>
 }
 
@@ -606,6 +669,7 @@ function Scene({
   onLeave,
   onSelect,
   onHome,
+  onSelectProject,
   previewRef,
 }: SceneProps) {
   const planetRefs: PlanetRefs = useRef({})
@@ -643,6 +707,7 @@ function Scene({
               modelRefs={modelRefs}
               isLocked={isLocked}
               selectedId={selectedId}
+              onSelectProject={onSelectProject}
             />
           ))}
         </group>

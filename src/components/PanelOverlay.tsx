@@ -9,12 +9,24 @@ interface PanelOverlayProps {
   /** Omitted by the fallback nav, which has no phased transition to wait on. */
   visible?: boolean
   onClose: () => void
+  /** Controlled when the scene is present, so a project moon and a project
+   *  card address the same selection. Uncontrolled on the mobile branch. */
+  activeProjectId?: string | null
+  onActiveProjectChange?: (id: string | null) => void
 }
 
 const PANEL_EASE = [0.16, 1, 0.3, 1]
 
-export default function PanelOverlay({ planet, visible, onClose }: PanelOverlayProps) {
-  const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
+export default function PanelOverlay({
+  planet,
+  visible,
+  onClose,
+  activeProjectId: controlledProjectId,
+  onActiveProjectChange,
+}: PanelOverlayProps) {
+  const [uncontrolledProjectId, setUncontrolledProjectId] = useState<string | null>(null)
+  const activeProjectId = controlledProjectId ?? uncontrolledProjectId
+  const setActiveProjectId = onActiveProjectChange ?? setUncontrolledProjectId
   const panelRef = useRef<HTMLDivElement | null>(null)
   const show = Boolean(planet) && (visible ?? true)
 
@@ -22,6 +34,9 @@ export default function PanelOverlay({ planet, visible, onClose }: PanelOverlayP
 
   useEffect(() => {
     setActiveProjectId(null)
+    // setActiveProjectId is stable in both the controlled and uncontrolled
+    // cases; depending on it would reset the selection on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [planet])
 
   const activeProject: Project | null =

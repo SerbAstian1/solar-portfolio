@@ -15,6 +15,10 @@ export interface SolarSystemProps {
 
 export default function SolarSystem({ sectionId, navigate }: SolarSystemProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null)
+  /* Owned here so a moon click and a project card select the same thing.
+     Project moon ids are the project ids, which is what lets the two
+     surfaces address one another without a lookup table. */
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
   const starDimRef = useRef<HTMLDivElement | null>(null)
   const previewRef = useRef<HTMLDivElement | null>(null)
   const leaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -53,6 +57,7 @@ export default function SolarSystem({ sectionId, navigate }: SolarSystemProps) {
     }
     if (sectionId === selectedId) return
 
+    setActiveProjectId(null)
     if (sectionId === null) closePanel()
     else if (selectedId === null) selectPlanet(sectionId)
     // Section to section (a history pop, usually): swap content immediately
@@ -105,6 +110,7 @@ export default function SolarSystem({ sectionId, navigate }: SolarSystemProps) {
           }, 150)
         }}
         onSelect={(id: string) => navigate(id)}
+        onSelectProject={setActiveProjectId}
         onHome={() => navigate(null)}
       />
 
@@ -113,6 +119,8 @@ export default function SolarSystem({ sectionId, navigate }: SolarSystemProps) {
       <PanelOverlay
         planet={selectedPlanet}
         visible={panelVisible}
+        activeProjectId={activeProjectId}
+        onActiveProjectChange={setActiveProjectId}
         onClose={() => navigate(null)}
       />
     </main>
