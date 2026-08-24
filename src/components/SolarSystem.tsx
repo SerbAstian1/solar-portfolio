@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { PLANETS } from '../data/planets'
 import type { PlanetContent } from '../data/types'
 import { usePlanetNavigation } from '../hooks/usePlanetNavigation'
+import { CLEAR_TRANSIT } from '../orbital'
+import type { Occultation } from '../orbital'
 import { OPEN_PHASES } from '../utils/transitionEasing'
 import PlanetPreview from './PlanetPreview'
 import PanelOverlay from './PanelOverlay'
@@ -21,6 +23,16 @@ export default function SolarSystem({ sectionId, navigate, mode = 'full' }: Sola
      Project moon ids are the project ids, which is what lets the two
      surfaces address one another without a lookup table. */
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
+
+  /* The live transit, exposed as a real system variable so other surfaces can
+     respond to it. Only phase changes reach React — the coverage number is
+     read every frame inside the scene and must never drive a re-render. */
+  const transitRef = useRef<Occultation>(CLEAR_TRANSIT)
+  const [transitState, setTransitState] = useState(CLEAR_TRANSIT.state)
+  const onTransitChange = useCallback((transit: Occultation) => {
+    transitRef.current = transit
+    setTransitState(transit.state)
+  }, [])
   const starDimRef = useRef<HTMLDivElement | null>(null)
   const previewRef = useRef<HTMLDivElement | null>(null)
   const leaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -85,7 +97,7 @@ export default function SolarSystem({ sectionId, navigate, mode = 'full' }: Sola
   const selectedPlanet = PLANETS.find((p) => p.id === selectedId) || null
 
   return (
-    <main className="scene" id="main-content">
+    <main className="scene" id="main-content" data-transit={transitState}>
       <div className="scene-star-dim" ref={starDimRef} aria-hidden="true" />
 
       <ThreeSolarSystem
@@ -114,6 +126,7 @@ export default function SolarSystem({ sectionId, navigate, mode = 'full' }: Sola
         onSelect={(id: string) => navigate(id)}
         onSelectProject={setActiveProjectId}
         mode={mode}
+        onTransitChange={onTransitChange}
         onHome={() => navigate(null)}
       />
 

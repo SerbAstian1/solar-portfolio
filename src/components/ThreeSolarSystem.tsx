@@ -22,14 +22,70 @@ import {
   panelWidthFor,
   stepSpring,
   worldPositionAt,
+  CLEAR_TRANSIT,
+  combineTransits,
+  computeTransit,
 } from '../orbital'
-import type { CameraTarget, CelestialBody, Spring } from '../orbital'
+import type { CameraTarget, CelestialBody, Occultation, Spring } from '../orbital'
 import { useReducedMotion } from '../hooks/useMediaQuery'
 import { lerp, OPEN_PHASES, phaseProgress } from '../utils/transitionEasing'
 
 type TransitionRef = MutableRefObject<TransitionState>
 type PlanetRefs = MutableRefObject<Record<string, THREE.Group | null>>
 type ModelRefs = MutableRefObject<Record<string, THREE.Object3D | null>>
+/** Per-body transit results, written by each planet and read by the star. */
+type TransitRefs = MutableRefObject<Record<string, Occultation>>
+
+/**
+ * How far ahead the orbit is sampled to tell ingress from egress.
+ *
+ * Both are the same geometry — partial overlap — so direction is the only
+ * thing that separates them. Sampling the orbit rather than remembering last
+ * frame's separation keeps the whole calculation a pure function of t, so a
+ * paused tab or a dropped frame cannot desynchronise it.
+ */
+const TRANSIT_LOOKAHEAD = 0.05
+
+/** Base colours, captured once so per-frame dimming is absolute rather than
+ *  compounding multiplicatively into black over a few seconds. */
+const baseEmissive = new WeakMap<THREE.Material, THREE.Color>()
+const baseColor = new WeakMap<THREE.Material, THREE.Color>()
+
+/**
+ * Applies remaining stellar flux to the star's materials.
+ *
+ * The primary visual is the planet genuinely covering the star's pixels,
+ * which depth testing already does. This is the secondary consequence — the
+ * disk losing the light the planet is blocking. It is deliberately small:
+ * coverage peaks at (Rp/R*)^2, about 6% for the inner planet, and inflating
+ * that would be inventing physics the rest of the module refuses to invent.
+ */
+function setStellarFlux(object: THREE.Object3D, flux: number) {
+  object.traverse((child: THREE.Object3D) => {
+    const mesh = child as THREE.Mesh
+    if (!mesh.isMesh || !mesh.material) return
+    const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+    materials.forEach((mat: THREE.Material) => {
+      const standard = mat as THREE.MeshStandardMaterial
+      if (standard.color) {
+        let base = baseColor.get(standard)
+        if (!base) {
+          base = standard.color.clone()
+          baseColor.set(standard, base)
+        }
+        standard.color.copy(base).multiplyScalar(flux)
+      }
+      if (standard.emissive) {
+        let base = baseEmissive.get(standard)
+        if (!base) {
+          base = standard.emissive.clone()
+          baseEmissive.set(standard, base)
+        }
+        standard.emissive.copy(base).multiplyScalar(flux)
+      }
+    })
+  })
+}
 
 const SUN_SIZE = 138
 const SUN_RADIUS = SUN_SIZE / 2
@@ -443,6 +499,7 @@ interface PlanetProps {
   onSelectProject: (id: string) => void
   mode: 'full' | 'compact'
   isHovered: boolean
+  transitRefs: TransitRefs
 }
 
 function Planet({
@@ -459,6 +516,7 @@ function Planet({
   onSelectProject,
   mode,
   isHovered,
+  transitRefs,
 }: PlanetProps) {
   const orbitRef = useRef<THREE.Group | null>(null)
   const visualRef = useRef<THREE.Group | null>(null)
@@ -469,6 +527,14 @@ function Planet({
   const isDisabled = isLocked
   const reducedMotion = useReducedMotion()
   const moons = useMemo(() => moonsOf(data.id), [data.id])
+  const lookahead = useRef(new THREE.Vector3())
+
+  useEffect(() => {
+    const published = transitRefs.current
+    return () => {
+      delete published[data.id]
+    }
+  }, [data.id, transitRefs])
 
   useEffect(() => {
     planetRefs.current[data.id] = orbitRef.current
@@ -494,6 +560,18 @@ function Planet({
     if (spinRef.current) {
       spinRef.current.rotation.y = (t / orbit.spin) * TAU
     }
+
+    /* Transit. The orbit supplies the motion; the projected geometry decides
+       whether a transit is happening at all. Sampling one short step ahead
+       is what separates ingress from egress, both of which are the same
+       partial-overlap configuration. */
+    localPositionAt(orbit, t + TRANSIT_LOOKAHEAD, lookahead.current)
+    transitRefs.current[data.id] = computeTransit({
+      starRadius: SUN_RADIUS,
+      bodyRadius: orbit.size / 2,
+      position: orbitRef.current.position,
+      nextPosition: lookahead.current,
+    })
 
     const tr = transitionRef.current
     const progress = tr.progress
@@ -620,9 +698,19 @@ interface SunProps {
   onHome: () => void
   transitionRef: TransitionRef
   isTransitioning: boolean
+  transitRefs: TransitRefs
+  /** Latest combined transit, published for any other system that wants it. */
+  onTransitChange: (transit: Occultation) => void
 }
 
-function Sun({ onHome, transitionRef, isTransitioning }: SunProps) {
+function Sun({
+  onHome,
+  transitionRef,
+  isTransitioning,
+  transitRefs,
+  onTransitChange,
+}: SunProps) {
+  const lastState = useRef<string>('clear')
   const reducedMotion = useReducedMotion()
   const groupRef = useRef<THREE.Group | null>(null)
   const { scene } = useGLTF('/sun3d.glb') as unknown as { scene: THREE.Group }
@@ -640,6 +728,16 @@ function Sun({ onHome, transitionRef, isTransitioning }: SunProps) {
     const progress = transitionRef.current.progress
     const fadeT = phaseProgress(progress, 0, OPEN_PHASES.approach)
     setModelOpacity(groupRef.current, lerp(1, DISTANT_OPACITY, fadeT))
+
+    const transit = combineTransits(Object.values(transitRefs.current))
+    setStellarFlux(groupRef.current, transit.flux)
+
+    // React only hears about phase changes, not every frame — the coverage
+    // number itself stays in the frame loop where it belongs.
+    if (transit.state !== lastState.current) {
+      lastState.current = transit.state
+      onTransitChange(transit)
+    }
   })
 
   return (
@@ -664,6 +762,8 @@ export interface SceneProps {
   /** 'compact' viewports draw labels only for the hovered or open body —
    *  five permanent labels over a tightened system is unreadable clutter. */
   mode: 'full' | 'compact'
+  /** Fires on transit phase changes only, never per frame. */
+  onTransitChange: (transit: Occultation) => void
 }
 
 function Scene({
@@ -679,9 +779,11 @@ function Scene({
   onSelectProject,
   previewRef,
   mode,
+  onTransitChange,
 }: SceneProps) {
   const planetRefs: PlanetRefs = useRef({})
   const modelRefs: ModelRefs = useRef({})
+  const transitRefs: TransitRefs = useRef({})
   const systemScale = useSystemScale()
 
   return (
@@ -701,7 +803,13 @@ function Scene({
           {PLANET_BODIES.map((body) => (
             <OrbitRing key={body.id} orbit={body} transitionRef={transitionRef} />
           ))}
-          <Sun onHome={onHome} transitionRef={transitionRef} isTransitioning={isTransitioning} />
+          <Sun
+            onHome={onHome}
+            transitionRef={transitionRef}
+            isTransitioning={isTransitioning}
+            transitRefs={transitRefs}
+            onTransitChange={onTransitChange}
+          />
           {PLANETS.map((planet) => (
             <Planet
               key={planet.id}
@@ -718,6 +826,7 @@ function Scene({
               onSelectProject={onSelectProject}
               mode={mode}
               isHovered={hoveredId === planet.id}
+              transitRefs={transitRefs}
             />
           ))}
         </group>

@@ -8,6 +8,22 @@ import type { CelestialBody } from './types'
  * each deriving their own. Values are preserved exactly from the original
  * ORBITS table — this was a move, not a retune.
  *
+ * TRANSITS. With ORBIT_TILT at 0.38, only the innermost body ever crosses the
+ * star's apparent disk. Measured over a full orbit against a 69-unit star:
+ *
+ *   work      peak coverage 4.35% (of 6.07% possible)  5.69s per 48.0s orbit
+ *   services  never crosses
+ *   about     never crosses
+ *   pricing   never crosses
+ *   contact   never crosses
+ *
+ * Work grazes rather than fully entering, which is why its peak falls short
+ * of the (Rp/R*)^2 ceiling — it clips the edge and its light curve has no
+ * flat bottom. This is a consequence of the tilt, not an oversight: a
+ * shallower plane would put more bodies across the disk but would flatten
+ * every orbit toward a line, which is the look the tilt was chosen to avoid.
+ * ORBIT_TILT in constants.ts is the lever if more transits are ever wanted.
+ *
  * Moons carry `parentId`. Only Work has real children (four projects), so
  * only Work has moons; inventing satellites for the other four sections
  * would be decoration pretending to be structure.
