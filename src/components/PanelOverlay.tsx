@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import type { PlanetContent, Project } from '../data/types'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 import { DURATION, EASE_OUT_EXPO } from '../motion'
-import OutlineButton from './OutlineButton'
+import OutlineButton, { OutlineLink } from './OutlineButton'
 
 interface PanelOverlayProps {
   planet: PlanetContent | null
@@ -154,13 +154,13 @@ export default function PanelOverlay({
 
                 <div className="project-detail-actions">
                   {activeProject.detail.behanceUrl && (
-                    <a href={activeProject.detail.behanceUrl} target="_blank" rel="noreferrer" className="btn-outline">
+                    <OutlineLink href={activeProject.detail.behanceUrl} target="_blank" rel="noreferrer">
                       Preview on Behance
-                    </a>
+                    </OutlineLink>
                   )}
-                  <button type="button" className="btn-outline" onClick={() => setActiveProjectId(null)}>
+                  <OutlineButton onClick={() => setActiveProjectId(null)}>
                     Back to projects
-                  </button>
+                  </OutlineButton>
                 </div>
               </motion.div>
             )}
