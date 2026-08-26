@@ -8,6 +8,7 @@ import type {
   ProjectDetail,
 } from '../data/types'
 import { inkContrast, normaliseHex, readableInk } from '../utils/color'
+import '../motion/logo/logo-reveal.css'
 
 type SectionId = 'logos' | 'palette' | 'fonts' | 'applications'
 
@@ -135,8 +136,15 @@ function LogoSection({ logos }: { logos: readonly BrandLogo[] }) {
         </div>
       </div>
       <div className="showcase-grid is-logos">
-        {logos.map((logo) => (
-          <figure key={logo.name} className="showcase-item">
+        {logos.map((logo, i) => (
+          /* --i drives the reveal stagger. Set inline rather than through a
+             nth-child ladder, which would silently stop staggering past
+             whatever count it happened to be written to. */
+          <figure
+            key={logo.name}
+            className="showcase-item"
+            style={{ '--i': i } as React.CSSProperties}
+          >
             <AssetTile
               src={logo.src}
               label={logo.name}

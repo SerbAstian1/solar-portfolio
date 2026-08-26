@@ -1,0 +1,78 @@
+/* ===== Mark reveal =====
+   Adapted from the `logo-animation` skill in iart-ai/motion-design-skills
+   (MIT). See ./README.md for the licence notice, what was taken, and what was
+   deliberately left behind.
+
+   Technique: mask wipe, staggered across the set, with a micro-settle.
+
+   The cookbook is firm that a mark gets ONE technique — draw OR build OR morph
+   — and this is the wipe. The stagger is not a second technique competing with
+   it: it runs *across* marks, not within one, and the settle is listed there as
+   its own closing beat rather than a rival mechanism.
+
+   Every value below is theirs:
+     wipe      0.5–0.9s   cubic-bezier(.22,1,.36,1)   -> 640ms
+     stagger   0.06–0.10s                             -> 70ms
+     settle    0.12–0.20s scale 1.04 -> 1.00          -> 160ms
+     envelope  0.8–2.5s total                         -> 640 + 5x70 + 160 = 1.15s
+
+   Their clearspace and geometry rules are what shaped the two choices that
+   might otherwise look arbitrary. The wipe runs on the tile while the settle
+   runs on the image inside it, because clip-path and transform on one element
+   fight over the same box — and because scaling the tile would crop into the
+   mark's safe margin, which the rules forbid. The settle is a uniform scale:
+   no skew, no squash, no non-uniform axis, all of which they call off-brand on
+   a final mark. */
+
+@keyframes mark-wipe {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* Overshoot and return. Sub-0.2s, which is the only window the cookbook allows
+   a mark to leave 1.0 at all. */
+@keyframes mark-settle {
+  0% {
+    transform: scale(0.985);
+  }
+  65% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* --i is the mark's index, set inline by the component, so the stagger holds
+   for a set of three marks or of twelve without a nth-child ladder that would
+   silently stop staggering past whatever number it was written to. */
+.showcase-grid.is-logos .showcase-item {
+  --i: 0;
+}
+
+.showcase-grid.is-logos .showcase-item .asset-tile {
+  animation: mark-wipe 640ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i) * 70ms);
+}
+
+.showcase-grid.is-logos .showcase-item .asset-tile img {
+  animation: mark-settle 160ms cubic-bezier(0.33, 1, 0.68, 1) both;
+  /* Lands as its own tile finishes wiping, so the mark settles on arrival
+     rather than after a pause. */
+  animation-delay: calc(var(--i) * 70ms + 560ms);
+}
+
+/* The cookbook's own requirement, and this site's: show the settled mark and
+   run nothing. Not a shorter animation — none. */
+@media (prefers-reduced-motion: reduce) {
+  .showcase-grid.is-logos .showcase-item .asset-tile,
+  .showcase-grid.is-logos .showcase-item .asset-tile img {
+    animation: none;
+    clip-path: none;
+    transform: none;
+  }
+}
