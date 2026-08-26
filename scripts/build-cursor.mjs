@@ -1,150 +1,177 @@
 #!/usr/bin/env node
 /**
- * Generates the pixel-rocket cursors as PNG data URIs.
+ * Generates the pixel arrow cursor as a PNG data URI.
  *
  * A native CSS cursor, not a DOM element tracking the pointer: the compositor
  * draws it, so it cannot lag behind the real pointer the way a JS-positioned
  * div does, it costs nothing per frame, and it yields correctly over native
  * UI. A lagging custom cursor is the commonest way this effect goes wrong.
  *
- * The art is authored nose-up and left that way. An earlier pass rotated it
- * 45 degrees to sit at an arrow-like angle; rotating pixel art this small
- * destroys it — rounding punches holes through the body and the silhouette
- * stops reading as a rocket at all. Pixel art is redrawn at an angle, never
- * rotated, and at 22px the upright form is the legible one.
+ * This replaced a rocket. The rocket was drawn nose-up and needed a 10 degree
+ * lean, which had to be applied as a horizontal shear because rotating pixel
+ * art this small tears it apart — a three-shear rotation, the trick that
+ * normally rescues it, still pulled the nose off the hull. None of that
+ * applies to an arrow: the standard pointer silhouette already carries its
+ * own angle, drawn into the shape rather than applied to it, so there is no
+ * transform here at all and nothing to degrade.
  *
  * Output is committed into global.css as a data URI, so there is no runtime
  * cost and no extra request. Re-run this only when the art changes.
  */
 import sharp from 'sharp'
-import { writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 
+/* Two colours. The silhouette is the standard pointer, so the shape alone
+   carries the "this is a cursor" reading and the fill is free to be the brand
+   accent. The dark outline stays regardless — it is what keeps an orange
+   pointer legible against the orange panels. */
 const PALETTE = {
   '.': null,
   K: [10, 10, 12, 255], // outline — keeps it legible on any surface
   O: [235, 94, 40, 255], // --orange, the brand accent
-  L: [245, 133, 79, 255], // --orange-text, the lit edge
-  W: [255, 255, 255, 255], // window
-  F: [255, 214, 138, 255], // flame
 }
 
-/** Shared hull. Flame rows are appended only for the active cursor. */
-const HULL = [
-  '.....K.....',
-  '....KLK....',
-  '....KLK....',
-  '...KOLOK...',
-  '...KOLOK...',
-  '..KOOLOOK..',
-  '..KOWWWOK..',
-  '..KOWWWOK..',
-  '..KOOLOOK..',
-  '..KOOLOOK..',
-  '.KOOOLOOOK.',
-  'KOOKOLOKOOK',
-  'KOK.KOK.KOK',
-  '.K..KOK..K.',
+/**
+ * The classic arrow.
+ *
+ * Drawn at the canonical proportions: a point at the origin, a straight left
+ * edge, a hypotenuse at roughly 45 degrees, the notch where the head meets
+ * the tail, and a tail angled to the lower right. The left edge being exactly
+ * vertical and the tip sitting exactly in the corner are what make it read as
+ * a pointer rather than as a triangle — and they are what let the hotspot be
+ * the true (0, 0) of the image.
+ */
+const ARROW = [
+  'K........',
+  'KK.......',
+  'KOK......',
+  'KOOK.....',
+  'KOOOK....',
+  'KOOOOK...',
+  'KOOOOOK..',
+  'KOOOOOOK.',
+  'KOOOOKKKK',
+  'KOOKOOK..',
+  'KOKKOOK..',
+  'KK..KOOK.',
+  'K...KOOK.',
+  '.....KK..',
 ]
-
-const IDLE = [...HULL, '.....K.....']
-const THRUST = [...HULL, '....KFK....', '....KFK....', '.....F.....']
 
 const SCALE = 2
 
-function toPng(grid) {
+/** Paints the grid into a raw RGBA buffer at SCALE, one grid cell per block. */
+function raster(grid) {
   const w = grid[0].length * SCALE
   const h = grid.length * SCALE
-  const buf = Buffer.alloc(w * h * 4)
+  const data = Buffer.alloc(w * h * 4)
   for (let y = 0; y < h; y += 1) {
     for (let x = 0; x < w; x += 1) {
       const px = PALETTE[grid[Math.floor(y / SCALE)][Math.floor(x / SCALE)]]
       if (!px) continue
       const i = (y * w + x) * 4
-      buf[i] = px[0]
-      buf[i + 1] = px[1]
-      buf[i + 2] = px[2]
-      buf[i + 3] = px[3]
+      data[i] = px[0]
+      data[i + 1] = px[1]
+      data[i + 2] = px[2]
+      data[i + 3] = px[3]
     }
   }
-  return sharp(buf, { raw: { width: w, height: h, channels: 4 } }).png({ compressionLevel: 9 })
+  return { data, w, h }
 }
 
-const results = {}
-for (const [name, art] of [
-  ['idle', IDLE],
-  ['thrust', THRUST],
-]) {
-  const widths = new Set(art.map((r) => r.length))
-  if (widths.size !== 1) throw new Error(`${name}: ragged grid, widths ${[...widths]}`)
-  for (const row of art) {
-    for (const ch of row) {
-      if (!(ch in PALETTE)) throw new Error(`${name}: unknown palette char "${ch}"`)
-    }
+const widths = new Set(ARROW.map((r) => r.length))
+if (widths.size !== 1) throw new Error(`ragged grid, widths ${[...widths]}`)
+for (const row of ARROW) {
+  for (const ch of row) {
+    if (!(ch in PALETTE)) throw new Error(`unknown palette char "${ch}"`)
   }
-
-  console.log(`\n--- ${name} ---`)
-  console.log(art.map((r) => r.replace(/\./g, ' ')).join('\n'))
-
-  const png = await toPng(art).toBuffer()
-  /* Hotspot on the nose: column 5 of 11, top row. The click point is the tip
-     of the rocket, the only place a user would expect it to be. */
-  results[name] = {
-    uri: `data:image/png;base64,${png.toString('base64')}`,
-    hotspot: [5 * SCALE + 1, 0],
-    size: [art[0].length * SCALE, art.length * SCALE],
-    bytes: png.length,
-  }
-  console.log(
-    `  ${results[name].size.join('x')}px  hotspot ${results[name].hotspot.join(',')}  ${png.length} bytes`,
-  )
 }
+if (ARROW[0][0] !== 'K') throw new Error('the tip must sit in the top-left cell')
 
-writeFileSync('scripts/.cursor-data.json', JSON.stringify(results, null, 2))
-console.log('\nwrote scripts/.cursor-data.json')
+console.log(ARROW.map((r) => r.replace(/\./g, ' ')).join('\n'))
+
+const { data, w, h } = raster(ARROW)
+const png = await sharp(data, { raw: { width: w, height: h, channels: 4 } })
+  .png({ compressionLevel: 9 })
+  .toBuffer()
+
+/* Hotspot at the tip, which the shape puts in the very first pixel — so this
+   is the one cursor whose hotspot needs no arithmetic and cannot drift. */
+const arrow = {
+  uri: `data:image/png;base64,${png.toString('base64')}`,
+  hotspot: [0, 0],
+  size: [w, h],
+  bytes: png.length,
+}
+console.log(`\n${arrow.size.join('x')}px  hotspot ${arrow.hotspot.join(',')}  ${png.length} bytes`)
+
+writeFileSync('scripts/.cursor-data.json', JSON.stringify({ arrow }, null, 2))
+console.log('wrote scripts/.cursor-data.json')
 
 /* ---- inject into global.css between markers ---------------------------- */
-import { readFileSync } from 'node:fs'
 
 const START = '/* cursor:start */'
 const END = '/* cursor:end */'
 const CSS_PATH = 'src/styles/global.css'
 
 const block = `${START}
-/* ===== Pixel rocket cursor =====
+/* ===== Pixel arrow cursor =====
    Generated by scripts/build-cursor.mjs — edit the art there, not here.
    Inlined as a data URI so it costs no request and is painted by the
    compositor rather than chased by JavaScript.
+
+   One cursor, no hover variant. Hover feedback is left to the colour and
+   underline changes the interactive elements already carry.
+
+   Interactive elements are listed explicitly even though they would inherit:
+   the UA stylesheet sets its own \`cursor:pointer\` on links and buttons, and
+   without a rule of their own they would flip back to the system arrow. The
+   keyword after the var is the fallback if the data URI ever fails to
+   decode, which is why it differs between the two rules.
 
    Gated on a fine pointer that can hover: touch has no cursor to replace,
    and overriding it there would do nothing but bloat the stylesheet.
 
    Tradeoff worth stating: a custom cursor ignores an enlarged system cursor
-   set for accessibility. It is kept near the default size (22px) and carries
-   a dark outline so it stays legible on any surface, but a user who needs a
-   much larger pointer loses that here. */
+   set for accessibility. At ${arrow.size[0]}x${arrow.size[1]} this sits close to the default pointer
+   size and carries a dark outline so it stays legible on any surface — but a
+   user who needs a much larger pointer loses that here. */
 @media (hover: hover) and (pointer: fine) {
-  html { cursor: var(--cursor-idle); }
+  html { cursor: var(--cursor-arrow), auto; }
   a, button, [role="button"], summary,
-  .mobile-tile, .project-card, .price-tier, canvas { cursor: var(--cursor-thrust); }
+  .mobile-tile, .project-card, .price-tier, canvas { cursor: var(--cursor-arrow), pointer; }
   input, textarea, select { cursor: text; }
   :disabled { cursor: not-allowed; }
 }
 ${END}`
 
-const vars = `  --cursor-idle: url("${results.idle.uri}") ${results.idle.hotspot.join(' ')}, auto;
-  --cursor-thrust: url("${results.thrust.uri}") ${results.thrust.hotspot.join(' ')}, pointer;`
+/* No trailing keyword here: each rule above supplies its own fallback. */
+const vars = `  --cursor-arrow: url("${arrow.uri}") ${arrow.hotspot.join(' ')};`
 
 let css = readFileSync(CSS_PATH, 'utf8')
 
-// Replace the variable pair, or add it inside :root on first run.
-if (css.includes('--cursor-idle:')) {
-  css = css.replace(/ {2}--cursor-idle:[^\n]*\n {2}--cursor-thrust:[^\n]*\n/, `${vars}\n`)
+/* Replace whatever cursor variable is currently there, whatever it is called.
+   This has been --cursor-idle/--cursor-thrust and then --cursor-rocket; a
+   chain of per-name migrations would only grow, so the rule is simply that
+   this script owns every `--cursor-*` declaration in the file. */
+const CURSOR_VAR = / {2}--cursor-[a-z-]+:[^\n]*\n/g
+if (CURSOR_VAR.test(css)) {
+  let first = true
+  css = css.replace(CURSOR_VAR, () => {
+    if (!first) return ''
+    first = false
+    return `${vars}\n`
+  })
 } else {
   css = css.replace(
     '  --orange-text:#F5854F;',
-    `  --orange-text:#F5854F;\n\n  /* Rocket cursors, generated — see the block below. */\n${vars}`,
+    `  --orange-text:#F5854F;\n\n  /* Arrow cursor, generated — see the block below. */\n${vars}`,
   )
 }
+css = css.replace(
+  /\/\* [A-Za-z]+ cursors?, generated — see the block below\. \*\//,
+  '/* Arrow cursor, generated — see the block below. */',
+)
 
 // Index-based splice rather than a RegExp: the markers contain / and * and
 // the block contains base64, so escaping them into a pattern is a needless

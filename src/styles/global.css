@@ -9,10 +9,19 @@
      eyebrow labels set it at 0.6875rem uppercase with wide tracking where
      that margin matters. This variant measures 6.1:1. */
   --orange-text:#F5854F;
+  /* Pressed-state wash. The only place the brand colour is used as a fill
+     rather than as ink or a border, so it is named rather than inlined. */
+  --orange-wash:rgba(235,94,40,0.14);
 
-  /* Rocket cursors, generated — see the block below. */
-  --cursor-idle: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABYAAAAeCAYAAAAo5+5WAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAcklEQVR42mNgIBJwcfH8B2EGagOqGwwz8GurPxhTzYJRg+EGvo7TAGOYwTA+2RaMGoxhIC6DSbaAbgbjAqMGU8/goZcqBq/BuAwkZDBBC6huMC4DiS2EcFpAN4PRvUS2PM0MJtQgIaiRUIOGZgYPmbYbADahxE9FuqijAAAAAElFTkSuQmCC") 11 0, auto;
-  --cursor-thrust: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABYAAAAiCAYAAABbXymAAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAhUlEQVR42mNgIBJwcfH8B2EGagOqGwwz8GurPxhTzYJRg+EGvo7TAGOYwTA+2RaMGoxhIC6DSbaAbgbjAqMGU8/goZcqBq/BuAwkZDBBC6huMC4DiS2EcFpAN4PRvUS2PM0MJtQgIaiRUIOGZgYTSt//r3WBMdXbFaMGwwHMYKq3j0k1GACDH/ormTs+mwAAAABJRU5ErkJggg==") 11 0, pointer;
+  /* Chamfer sizes. One cut language across the interface, scaled by how big
+     the surface is: a 34px cut on a 40px-tall button would eat the corner
+     entirely, and a 10px cut on a full-height panel would read as a mistake. */
+  --cut-sm:10px;
+  --cut-md:14px;
+  --cut-lg:34px;
+
+  /* Arrow cursor, generated — see the block below. */
+  --cursor-arrow: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAAcCAYAAABsxO8nAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAX0lEQVR42mPg4uL5D8IMlAKqG0SxgVQ36HWcBhiTbSDNDCLbQJobRLKBdDOIaAPpbhBBAwfMIJwG0t0g9MyNkdlpbhDJWYdmBqE7eeAMwqWAaAOpbhDFBR/VDBp09R8A8cQAjxUwkGYAAAAASUVORK5CYII=") 0 0;
 
   /* ===== Type ===== */
   --font-body:'Inter',sans-serif;
@@ -80,32 +89,200 @@ a{color:inherit; text-decoration:none;}
   body{overflow:auto;}
 }
 
-/* ===== Outline button — container is static, only .btn-text animates ===== */
+/* ===== Outline button =====
+   The container is static; only .btn-text re-renders while the label
+   scrambles.
+
+   .btn-label is a one-cell grid holding the animating text and an invisible
+   copy of the settled text stacked on top of one another. The sizer is what
+   fixes the width. It used to be a *sibling* flex item, which does not
+   reserve space — it occupies its own, so the button rendered at roughly
+   twice the width of its label with the text sitting in the left half. Two
+   things have to be true at once here: the box is measured against the final
+   string, and the animating glyphs are painted in the same place. Stacking
+   them in one grid cell is what gets both. */
 .btn-outline{
   display:inline-flex; align-items:center; gap:var(--space-2);
   font-family:var(--font-head); font-weight:600; font-size:var(--text-body-sm);
   padding:14px 26px; border:1px solid var(--white); border-radius:0;
   background:transparent; color:var(--white); cursor:pointer;
-  transition:border-color var(--dur-hover) ease-out;
+  text-decoration:none;
+  transition:border-color var(--dur-hover) ease-out,
+             color var(--dur-hover) ease-out,
+             background-color var(--dur-hover) ease-out;
 }
-.btn-outline:hover, .btn-outline:focus-visible{border-color:var(--orange);}
-.btn-outline .btn-text{
-  display:inline-block; transition:color var(--dur-hover) ease-out;
+/* :not(:disabled) so a disabled control cannot light up under the pointer and
+   claim to be actionable. Anchors match it too — they are never :disabled. */
+.btn-outline:not(:disabled):hover,
+.btn-outline:not(:disabled):focus-visible{
+  border-color:var(--orange); color:var(--orange);
 }
-.btn-outline:hover .btn-text, .btn-outline:focus-visible .btn-text{color:var(--orange);}
-.btn-outline .btn-text-hidden{
-  visibility:hidden; white-space:nowrap;
+/* Pressed. Previously absent, so the button gave no acknowledgement between
+   pointer-down and whatever the click caused. */
+.btn-outline:not(:disabled):active{
+  background-color:var(--orange-wash);
 }
-.btn-outline .caret{
-  display:inline-block; width:2px; height:0.9em; background:var(--orange);
-  margin-left:2px; opacity:0; vertical-align:-0.1em;
-  animation:caret-blink 800ms steps(1) infinite;
+/* Also previously absent: a disabled button was indistinguishable from an
+   enabled one. */
+.btn-outline:disabled{
+  opacity:0.4; cursor:not-allowed;
 }
-.btn-outline .caret.is-typing{opacity:1;}
-@keyframes caret-blink{0%,49%{opacity:1;} 50%,100%{opacity:0;}}
+/* One fixed-width cell per character.
+   
+   Two nested problems had to be solved, and only the outer one is obvious.
+   Grid-stacking the whole label stopped the *button* resizing when a wide
+   glyph stood in for a narrow one. But inside that stable box a proportional
+   face still re-flowed the line on every substitution — an `m` in place of an
+   `i` shoves its neighbours along and the next frame pulls them back, so the
+   letters wobbled even though the border no longer moved.
+   
+   Each character therefore owns a cell sized by an invisible copy of the
+   settled character, with the live glyph laid absolutely over it and centred.
+   A substitute overflows its own cell rather than displacing anything, so no
+   part of the line reflows between the first frame and the last. */
+.btn-outline .btn-label{
+  display:inline-flex; align-items:baseline; white-space:nowrap;
+}
+.btn-outline .btn-char{
+  position:relative; display:inline-block;
+}
+/* Holds the cell open at the settled character's width, and nothing else. */
+.btn-outline .btn-char-size{
+  visibility:hidden;
+}
+/* Out of flow, so its own width is nobody else's business. */
+.btn-outline .btn-char-live{
+  position:absolute; left:50%; top:0; transform:translateX(-50%);
+}
 
 @media(prefers-reduced-motion: reduce){
   *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+}
+
+/* ===== Cut edges =====
+   The panel's chamfered corner, applied to every surface that reads as a
+   card or a control, so the cut is a property of the interface rather than a
+   decoration on one component.
+
+   Two things have to happen together, and the second is the one that is easy
+   to miss. `clip-path` removes the corner — but it removes the *border* along
+   with it, leaving the diagonal unstroked and the outline visibly broken
+   rather than machined. The stroke is therefore redrawn as a background
+   gradient: a 45-degree band placed exactly where the cut runs.
+
+   That placement is not a fudge. The chamfer joins (0, cut) to (cut, 0), and a
+   line through those two points leaves the box immediately at both ends — so
+   the gradient's band, which would otherwise stripe the whole element, is
+   clipped to precisely the chamfer and nothing else. Its distance from the
+   top-left corner is cut x cos(45deg), hence the 0.7071.
+
+   `--edge` drives the border and the diagonal from one value, so a hover state
+   only has to restate the colour once. Custom properties do not interpolate
+   without @property, so the diagonal snaps where the border eases — over
+   120ms, below the threshold where that reads as two separate events.
+
+   Backgrounds on these elements must be set with `background-color`, never the
+   `background` shorthand, which would reset the gradient and take the stroke
+   with it. */
+.btn-outline,
+.panel-close,
+.project-card,
+.price-tier,
+.project-detail-modal,
+.mobile-tile{
+  --cut:var(--cut-sm);
+  --edge:var(--line);
+  border-radius:0;
+  clip-path:polygon(0 var(--cut), var(--cut) 0, 100% 0, 100% 100%, 0 100%);
+  background-image:linear-gradient(
+    135deg,
+    transparent calc(var(--cut) * 0.7071),
+    var(--edge) calc(var(--cut) * 0.7071),
+    var(--edge) calc(var(--cut) * 0.7071 + 1px),
+    transparent calc(var(--cut) * 0.7071 + 1px)
+  );
+  /* The clip would cut a UA focus ring at the corner. Drawing it inside keeps
+     the whole ring within the shape, and these controls signal focus with
+     their border colour as well. */
+  outline-offset:-3px;
+}
+/* Cards are large enough to carry the deeper cut. */
+.project-card,
+.price-tier,
+.project-detail-modal{
+  --cut:var(--cut-md);
+}
+/* Each state restates --edge once; border and diagonal both follow it. */
+.btn-outline{--edge:var(--white);}
+.btn-outline:not(:disabled):hover,
+.btn-outline:not(:disabled):focus-visible,
+.panel-close:hover,
+.panel-close:focus-visible,
+.project-card:hover,
+.project-card:focus-visible,
+.price-tier:hover,
+.price-tier:focus-within,
+.mobile-tile:hover,
+.mobile-tile:focus-visible{
+  --edge:var(--orange);
+}
+
+/* ===== Telemetry strip =====
+   A full-width instrument rail, not a headline. The three fields are justified
+   edge to edge so the bar spans any viewport structurally rather than by
+   stretching type to fit — the readout stays at a readable size and the
+   *spacing* does the stretching.
+
+   Tabular figures are load-bearing: without them a ticking seconds digit
+   changes width and the whole left field jitters, which is the same class of
+   bug the button label had. */
+.telemetry{
+  position:fixed; left:0; right:0; bottom:0; z-index:90;
+  display:flex; flex-direction:column; gap:6px;
+  padding:10px clamp(16px, 3vw, 40px) 12px;
+  pointer-events:none;
+  background:linear-gradient(to top, rgba(0,0,0,0.72), rgba(0,0,0,0));
+  border-top:1px solid var(--line);
+  transition:opacity 220ms var(--ease-out), transform 220ms var(--ease-out);
+}
+/* Drops out of the way when a panel opens. It sits below the panel in the
+   stack, but the panel's surface is translucent, so "behind" was not the same
+   as "gone" — the readout ghosted through the glass along the panel's bottom
+   edge and competed with the content there. */
+.telemetry.is-retracted{
+  opacity:0; transform:translateY(100%); pointer-events:none;
+}
+.telemetry-row{
+  display:flex; align-items:baseline; justify-content:space-between; gap:var(--space-4);
+  font-family:var(--font-head); font-size:var(--text-micro);
+  text-transform:uppercase; letter-spacing:var(--tracking-label);
+  font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1;
+}
+.telemetry-row.is-entering{
+  animation:telemetry-in 320ms var(--ease-out) both;
+}
+@keyframes telemetry-in{
+  from{opacity:0; transform:translateY(4px);}
+  to{opacity:1; transform:none;}
+}
+/* The label reads as the quietest of the three; the value it introduces is
+   what the eye should land on. */
+.telemetry-field.is-left{color:var(--orange-text); white-space:nowrap;}
+.telemetry-field.is-centre{color:var(--white); white-space:nowrap;}
+.telemetry-field.is-right{color:rgba(255,255,255,0.55); white-space:nowrap;}
+
+.telemetry-ticks{display:flex; gap:5px; justify-content:center;}
+.telemetry-tick{
+  width:14px; height:2px; background:var(--line);
+  transition:background var(--dur-hover) ease-out;
+}
+.telemetry-tick.is-active{background:var(--orange);}
+
+/* Below the layout breakpoint the middle field is the first thing to go: the
+   time and the offset are what a narrow bar has room to be honest about. */
+@media (max-width:640px){
+  .telemetry-field.is-centre{display:none;}
+  .telemetry-row{justify-content:space-between;}
 }
 
 /* ===== Accessibility utilities ===== */
@@ -126,22 +303,31 @@ a{color:inherit; text-decoration:none;}
 [tabindex="-1"]:focus{outline:none;}
 
 /* cursor:start */
-/* ===== Pixel rocket cursor =====
+/* ===== Pixel arrow cursor =====
    Generated by scripts/build-cursor.mjs — edit the art there, not here.
    Inlined as a data URI so it costs no request and is painted by the
    compositor rather than chased by JavaScript.
+
+   One cursor, no hover variant. Hover feedback is left to the colour and
+   underline changes the interactive elements already carry.
+
+   Interactive elements are listed explicitly even though they would inherit:
+   the UA stylesheet sets its own `cursor:pointer` on links and buttons, and
+   without a rule of their own they would flip back to the system arrow. The
+   keyword after the var is the fallback if the data URI ever fails to
+   decode, which is why it differs between the two rules.
 
    Gated on a fine pointer that can hover: touch has no cursor to replace,
    and overriding it there would do nothing but bloat the stylesheet.
 
    Tradeoff worth stating: a custom cursor ignores an enlarged system cursor
-   set for accessibility. It is kept near the default size (22px) and carries
-   a dark outline so it stays legible on any surface, but a user who needs a
-   much larger pointer loses that here. */
+   set for accessibility. At 18x28 this sits close to the default pointer
+   size and carries a dark outline so it stays legible on any surface — but a
+   user who needs a much larger pointer loses that here. */
 @media (hover: hover) and (pointer: fine) {
-  html { cursor: var(--cursor-idle); }
+  html { cursor: var(--cursor-arrow), auto; }
   a, button, [role="button"], summary,
-  .mobile-tile, .project-card, .price-tier, canvas { cursor: var(--cursor-thrust); }
+  .mobile-tile, .project-card, .price-tier, canvas { cursor: var(--cursor-arrow), pointer; }
   input, textarea, select { cursor: text; }
   :disabled { cursor: not-allowed; }
 }

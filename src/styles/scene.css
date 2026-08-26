@@ -100,8 +100,7 @@
   gap:var(--space-3);
   padding:22px;
   border:1px solid var(--line);
-  border-radius:2px;
-  background:rgba(255,255,255,0.04);
+  background-color:rgba(255,255,255,0.04);
   color:#fff;
   text-align:left;
   cursor:pointer;
@@ -113,7 +112,7 @@
 .project-card:focus-visible{
   border-color:var(--orange);
   transform:translateY(-2px);
-  background:rgba(255,255,255,0.08);
+  background-color:rgba(255,255,255,0.08);
 }
 .project-card h3,
 .project-card p,
@@ -125,7 +124,7 @@
 }
 .project-detail-modal{
   border:1px solid var(--line);
-  background:rgba(255,255,255,0.04);
+  background-color:rgba(255,255,255,0.04);
   padding:26px;
   margin-top:28px;
 }
@@ -290,25 +289,111 @@
   width:min(50vw,640px);
   min-width:min(420px,92vw);
   height:100%;
-  padding:100px 48px 48px;
+  padding:100px 48px 72px;
   overflow-y:auto;
   will-change:transform, opacity;
+  /* Chamfered leading corner — the instrument-panel form, cut rather than
+     rounded. Radius would read as consumer-soft; a 45-degree cut reads as
+     machined, and it is the one shape doing the "futuristic" work here so the
+     rest of the surface can stay quiet. */
+  clip-path:polygon(0 var(--cut-lg), var(--cut-lg) 0, 100% 0, 100% 100%, 0 100%);
 }
+/**
+ * The surface.
+ *
+ * Opacity raised from 0.62 to 0.90. The old value let the moving scene through
+ * behind body copy, which put the text's contrast at the mercy of whatever
+ * happened to be orbiting past — a planet crossing behind a paragraph changed
+ * its legibility. At 0.90 over the page black the effective backdrop is about
+ * #07080B, and body copy at 75% white measures ~10.6:1 against it, so the
+ * worst-case backdrop is now a fixed, known quantity rather than a moving one.
+ *
+ * The scanline is the same visual language as the dithered bodies: a 3px
+ * repeat at 3.5% white. It ties the chrome to the scene without becoming
+ * texture you have to read through.
+ */
 .panel-glass{
-  background:rgba(8,8,12,0.62);
-  border-left:1px solid rgba(255,255,255,0.12);
-  box-shadow:-24px 0 80px rgba(0,0,0,0.35);
-  backdrop-filter:blur(12px);
-  -webkit-backdrop-filter:blur(12px);
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,0.035) 0px,
+      rgba(255,255,255,0.035) 1px,
+      transparent 1px,
+      transparent 3px
+    ),
+    rgba(7,8,11,0.90);
+  border-left:1px solid rgba(255,255,255,0.14);
+  box-shadow:-24px 0 80px rgba(0,0,0,0.5);
+  backdrop-filter:blur(16px) saturate(1.1);
+  -webkit-backdrop-filter:blur(16px) saturate(1.1);
 }
+/* Status rail on the leading edge — the panel's one piece of colour as
+   structure rather than as ink. It reads as "this surface is live", which is
+   the job the chamfer and the scanline cannot do on their own. */
+.panel-glass::before{
+  content:""; position:absolute; left:0; top:var(--cut-lg); bottom:0; width:2px;
+  background:linear-gradient(to bottom, var(--orange), rgba(235,94,40,0));
+  pointer-events:none;
+}
+/* Corner bracket, bottom right. HUD framing: two hairlines that imply a frame
+   without drawing one, so the panel stays open on three sides. */
+.panel-glass::after{
+  content:""; position:absolute; right:20px; bottom:20px; width:18px; height:18px;
+  border-right:1px solid rgba(255,255,255,0.28);
+  border-bottom:1px solid rgba(255,255,255,0.28);
+  pointer-events:none;
+}
+/* Stated solid fallback. Translucency here is hierarchical, not decorative, so
+   when the visitor has asked for less of it the surface goes opaque rather
+   than losing the separation it was providing. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more){
+  .panel-glass{
+    background:#06070A;
+    backdrop-filter:none;
+    -webkit-backdrop-filter:none;
+    border-left:1px solid rgba(255,255,255,0.3);
+  }
+}
+/* Boxed rather than bare. A text-only "Close ✕" floating over a translucent
+   surface has no hit target a pointer can find without reading it; the border
+   states where the control is, and the states below say what it is doing. */
 .panel-close{
-  position:absolute; top:32px; right:32px; background:none; border:none; cursor:pointer;
-  color:rgba(255,255,255,0.75); font-family:var(--font-head); font-size:var(--text-small);
-  transition:color var(--dur-hover) ease-out;
+  position:absolute; top:28px; right:28px; cursor:pointer;
+  display:inline-flex; align-items:center; gap:var(--space-2);
+  padding:7px 12px;
+  background-color:transparent; border:1px solid var(--line);
+  color:rgba(255,255,255,0.75);
+  font-family:var(--font-head); font-size:var(--text-micro);
+  text-transform:uppercase; letter-spacing:var(--tracking-label);
+  transition:color var(--dur-hover) ease-out,
+             border-color var(--dur-hover) ease-out,
+             background-color var(--dur-hover) ease-out;
 }
-.panel-close:hover, .panel-close:focus-visible{color:var(--orange);}
-.panel .eyebrow{font-size:var(--text-caption); text-transform:uppercase; letter-spacing:var(--tracking-label); color:var(--orange-text); margin-bottom:var(--space-4);}
-.panel h2{font-family:var(--font-head); font-weight:700; font-size:var(--text-heading); margin-bottom:var(--space-5); color:#fff;}
+.panel-close:hover, .panel-close:focus-visible{
+  color:var(--orange); border-color:var(--orange);
+}
+.panel-close:active{background-color:var(--orange-wash);}
+/* The eyebrow becomes a labelled divider rather than a line of small caps: the
+   rule runs from the end of the label to the panel's edge, which gives the
+   heading something to sit under and makes the section read as a readout
+   header. The rule is a flex child, so it takes whatever width the label
+   leaves and needs no magic numbers. */
+.panel .eyebrow{
+  display:flex; align-items:center; gap:var(--space-3);
+  font-size:var(--text-eyebrow); text-transform:uppercase;
+  letter-spacing:var(--tracking-label); color:var(--orange-text);
+  margin-bottom:var(--space-3);
+}
+.panel .eyebrow::after{
+  content:""; flex:1; height:1px; background:var(--line);
+}
+.panel h2{
+  font-family:var(--font-head); font-weight:700; font-size:var(--text-heading);
+  margin-bottom:var(--space-5); color:#fff;
+  /* Display sizes read loose at their default tracking; this is the negative
+     end of the size-dependent tracking the type scale already assumes. */
+  letter-spacing:-0.02em; line-height:1.08;
+}
 .panel p{color:rgba(255,255,255,0.75); margin-bottom:var(--space-4); line-height:var(--leading-body);}
 
 /* ===== Pricing ===== */
@@ -320,7 +405,12 @@
   border:1px solid var(--line); padding:24px; background:rgba(255,255,255,0.02);
   transition:border-color var(--dur-hover) ease-out, transform 200ms ease-out, background 200ms ease-out;
 }
-.price-tier:hover{border-color:var(--orange); transform:translateY(-2px); background:rgba(255,255,255,0.05);}
+/* Lifts on hover, and says so on focus and press too. The transform was the
+   only feedback here, which meant a keyboard user reaching a tier got none. */
+.price-tier:hover, .price-tier:focus-within{
+  border-color:var(--orange); transform:translateY(-2px); background-color:rgba(255,255,255,0.05);
+}
+.price-tier:active{transform:translateY(0); background-color:var(--orange-wash);}
 .price-tier .tier-name{font-family:var(--font-head); font-weight:700; font-size:var(--text-lead); color:#fff;}
 .price-tier .tier-price{font-family:var(--font-head); font-size:var(--text-price); margin:10px 0; color:var(--orange);}
 .price-tier ul{list-style:none; margin-top:14px; display:flex; flex-direction:column; gap:var(--space-2);}
@@ -393,11 +483,16 @@
 .mobile-tile{
   border:1px solid var(--line); padding:20px; display:flex; flex-direction:column; gap:6px;
   transition:border-color var(--dur-hover) ease-out, background 200ms ease-out;
-  background:transparent; color:#fff; text-align:left; cursor:pointer;
+  background-color:transparent; color:#fff; text-align:left; cursor:pointer;
 }
-.mobile-tile:hover, .mobile-tile:focus-visible{border-color:var(--orange); background:rgba(255,255,255,0.04);}
-.mobile-tile:active{background:rgba(255,255,255,0.07);}
+.mobile-tile:hover, .mobile-tile:focus-visible{border-color:var(--orange); background-color:rgba(255,255,255,0.04);}
+.mobile-tile:active{background-color:rgba(255,255,255,0.07);}
 .mobile-tile .cat{font-size:var(--text-eyebrow); text-transform:uppercase; letter-spacing:var(--tracking-label); color:var(--orange-text);}
 .mobile-tile h5{font-family:var(--font-head); font-size:var(--text-card);}
 .mobile-tile p{font-size:var(--text-caption); color:rgba(255,255,255,0.65);}
-@media (max-width:820px){.panel{padding:80px 24px 32px;}}
+@media (max-width:820px){
+  /* Bottom padding clears the telemetry strip, which is fixed to the viewport
+     and would otherwise sit over the last line of the panel. */
+  .panel{padding:80px 24px 96px; clip-path:polygon(0 24px, 24px 0, 100% 0, 100% 100%, 0 100%);}
+  .panel-close{top:22px; right:20px;}
+}
