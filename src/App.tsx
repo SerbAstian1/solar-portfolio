@@ -1,5 +1,6 @@
 import { Suspense, lazy } from 'react'
 import DitherCanvas from './components/DitherCanvas'
+import TelemetryStrip from './components/TelemetryStrip'
 import MobileNav from './components/MobileNav'
 import PanelOverlay from './components/PanelOverlay'
 import { useSpatialMode } from './hooks/useSpatialMode'
@@ -33,6 +34,11 @@ export default function App() {
       </a>
 
       <DitherCanvas />
+
+      {/* Mounted outside the scene branch on purpose: it is a clock first, and
+          a clock that disappears on a phone is a worse clock. Without the
+          scene it simply has no telemetry to cycle to and holds the time. */}
+      <TelemetryStrip retracted={section !== null} />
 
       {/* Exactly one h1 at every viewport. The scene branch has no visible
           heading of its own, so the document previously started at h2 on
