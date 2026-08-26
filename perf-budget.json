@@ -1,10 +1,14 @@
 {
-  "_comment": "Gzipped budgets in KB unless noted. entryJs is what every device loads before anything renders — the number that actually gates mobile. sceneJs is the lazily-loaded 3D chunk, requested only above the 820px breakpoint. assets covers public/ binaries, also desktop-only and off the first-paint path.",
+  "_comment": "Gzipped budgets in KB unless noted. entryJs is what every device loads before anything renders — the number that actually gates mobile. sceneJs is the lazily-loaded 3D chunk, requested only above the 820px breakpoint. modelsKB covers the 3D binaries, desktop-only and off the first-paint path. imagesKB and maxImageKB cover project imagery, which is NOT desktop-only.",
 
-  "_assetsJustification": "1100KB, not the 600KB first drafted. That figure came from the audit's estimate of TEXTURE size after resampling (actual: 622KB) and wrongly treated it as whole-file size; the balance is vertex data. Post-optimization the pair is 1042KB, loaded lazily on desktop only, after first paint, and never on the LCP path — mobile fetches zero bytes of it. Cutting further means KHR_mesh_quantization or mesh decimation for roughly 300KB against real visual risk on spheres, which is not worth it at this position in the load. Revisit only if desktop LCP measures poorly in Phase 11.",
+  "_modelsJustification": "1100KB, not the 600KB first drafted. That figure came from the audit's estimate of TEXTURE size after resampling (actual: 622KB) and wrongly treated it as whole-file size; the balance is vertex data. Post-optimization the pair is 1042KB, loaded lazily on desktop only, after first paint, and never on the LCP path — mobile fetches zero bytes of it. Cutting further means KHR_mesh_quantization or mesh decimation for roughly 300KB against real visual risk on spheres, which is not worth it at this position in the load. Revisit only if desktop LCP measures poorly in Phase 11.",
+
+  "_imagesJustification": "Split out of the old single assets budget, which was one pool at 1100KB with the models already filling 1042KB of it — 58KB of headroom, less than one unoptimised export. Two separate budgets because the two are not paid for by the same visitor: the models are fetched only above the scene breakpoint, while project imagery is fetched at every viewport, so per kilobyte it costs more and deserves its own ceiling rather than whatever the models leave behind. 1200KB total assumes roughly four projects of six images at WebP/AVIF, all behind three interactions and lazy-loaded, none on the LCP path. maxImageKB is the check that matters day to day: a total can be met while one forgotten 900KB export sits inside it, and that single file is the thing a phone actually chokes on. 180KB is a 1400px-wide WebP at reasonable quality.",
 
   "entryJsGzipKB": 170,
   "sceneJsGzipKB": 260,
   "cssGzipKB": 20,
-  "assetsKB": 1100
+  "modelsKB": 1100,
+  "imagesKB": 1200,
+  "maxImageKB": 180
 }
