@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { cursorDisplacement } from '../orbital/cursorField'
+import { BAYER_8 } from '../render/bayer'
 
 interface Star {
   x: number
@@ -23,18 +24,6 @@ interface DitherCanvasProps {
   /** Normalised position of the star's glow centre, 0-1 of the viewport. */
   sunPos?: { x: number; y: number }
 }
-
-// Classic 8x8 Bayer ordered-dither threshold matrix, normalized 0..1
-const BAYER_8 = [
-  0, 32, 8, 40, 2, 34, 10, 42,
-  48, 16, 56, 24, 50, 18, 58, 26,
-  12, 44, 4, 36, 14, 46, 6, 38,
-  60, 28, 52, 20, 62, 30, 54, 22,
-  3, 35, 11, 43, 1, 33, 9, 41,
-  51, 19, 59, 27, 49, 17, 57, 25,
-  15, 47, 7, 39, 13, 45, 5, 37,
-  63, 31, 55, 23, 61, 29, 53, 21,
-].map((v) => v / 64)
 
 function pseudoNoise(x: number, y: number, t: number): number {
   // Cheap layered sine "noise" — deterministic, fast, good enough for animated grain.
