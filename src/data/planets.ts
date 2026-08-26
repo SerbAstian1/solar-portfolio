@@ -115,7 +115,8 @@ export const PLANETS: readonly PlanetContent[] = [
               { title: 'Cover layout', caption: 'Primary album art treatment.' },
               { title: 'Release mockup', caption: 'Digital and physical presentation.' },
             ],
-            behanceUrl: 'https://www.behance.net/your-profile',
+            cover: { title: 'Cover artwork' },
+            spotifyUrl: 'https://open.spotify.com/track/3n3Ppam7vgaVa1iaRUc9Lp',
             highlights: [
               'Striking title treatment and branding',
               'Mood-led visual palette and texture system',
@@ -139,7 +140,8 @@ export const PLANETS: readonly PlanetContent[] = [
               { title: 'Merch concept', caption: 'Package and wearable mocks.' },
               { title: 'Streaming UI', caption: 'Track list and release page.' },
             ],
-            behanceUrl: 'https://www.behance.net/your-profile',
+            cover: { title: 'Cover artwork' },
+            spotifyUrl: 'https://open.spotify.com/track/1301WleyT98MSxVHPZCA6M',
             highlights: [
               'Cover art applications for vinyl and digital',
               'Merch and promo concept styling',

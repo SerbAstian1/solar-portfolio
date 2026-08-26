@@ -4,7 +4,7 @@ import type { PlanetContent, Project } from '../data/types'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 import { DURATION, EASE_OUT_EXPO } from '../motion'
 import OutlineButton, { OutlineLink } from './OutlineButton'
-import ProjectShowcase from './ProjectShowcase'
+import ProjectShowcase, { ProjectCover } from './ProjectShowcase'
 
 interface PanelOverlayProps {
   planet: PlanetContent | null
@@ -136,6 +136,10 @@ export default function PanelOverlay({
                 {/* The work comes first and takes the room. Everything below it
                     is reference the client reads once, so it is set small and
                     kept out of the way of the thing they came to look at. */}
+                {activeProject.detail.cover && (
+                  <ProjectCover cover={activeProject.detail.cover} />
+                )}
+
                 <ProjectShowcase detail={activeProject.detail} />
 
                 <dl className="project-facts">
@@ -153,11 +157,26 @@ export default function PanelOverlay({
                   </div>
                 </dl>
 
-                {activeProject.detail.behanceUrl && (
+                {(activeProject.detail.spotifyUrl || activeProject.detail.behanceUrl) && (
                   <div className="project-detail-actions">
-                    <OutlineLink href={activeProject.detail.behanceUrl} target="_blank" rel="noreferrer">
-                      Preview on Behance
-                    </OutlineLink>
+                    {activeProject.detail.spotifyUrl && (
+                      <OutlineLink
+                        href={activeProject.detail.spotifyUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Listen on Spotify
+                      </OutlineLink>
+                    )}
+                    {activeProject.detail.behanceUrl && (
+                      <OutlineLink
+                        href={activeProject.detail.behanceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Preview on Behance
+                      </OutlineLink>
+                    )}
                   </div>
                 )}
               </motion.div>

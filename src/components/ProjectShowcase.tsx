@@ -325,6 +325,25 @@ function ApplicationSection({ items }: { items: readonly BrandApplication[] }) {
   )
 }
 
+/**
+ * The cover, on its own, with nothing to open.
+ *
+ * Shares AssetTile with the showcase so a missing or broken file degrades the
+ * same way here as everywhere else: a labelled placeholder at the size the
+ * artwork will occupy, never a broken-image icon.
+ */
+export function ProjectCover({ cover }: { cover: { title: string; src?: string } }) {
+  return (
+    <figure className="project-cover">
+      {/* No label inside the tile: the caption below names it in both states,
+          and printing it twice reads as a mistake while the artwork is still
+          a placeholder. */}
+      <AssetTile src={cover.src} label={cover.title} ratio="1 / 1" fit="cover" showLabel={false} />
+      <figcaption>{cover.title}</figcaption>
+    </figure>
+  )
+}
+
 /** A row of colour dots — the most useful thing a collapsed palette can show,
  *  and readable at a glance without opening anything. */
 function PaletteSummary({ palette }: { palette: readonly BrandColor[] }) {

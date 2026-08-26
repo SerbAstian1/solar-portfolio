@@ -50,11 +50,30 @@ export interface ProjectDetail {
   readonly previewImages?: readonly { readonly title: string; readonly caption: string }[]
   readonly behanceUrl?: string
   readonly highlights: readonly string[]
-  /** The interactive showcase. Each absent section simply has no tab. */
+  /** The interactive showcase. Each absent section simply is not rendered. */
   readonly logos?: readonly BrandLogo[]
   readonly palette?: readonly BrandColor[]
   readonly fonts?: readonly BrandFont[]
   readonly applications?: readonly BrandApplication[]
+  /**
+   * A single, static piece of artwork — an album cover and nothing else.
+   *
+   * Cover work has no marks, palette or applications to expand into, so those
+   * projects carry no showcase sections at all and simply show the cover. It
+   * is deliberately not a section: there is nothing underneath it to reveal,
+   * and a card that opens onto more of the same is a worse card.
+   */
+  readonly cover?: { readonly title: string; readonly src?: string }
+  /**
+   * Where to hear it. Rendered whenever it is present.
+   *
+   * Note what does *not* decide this: the project's `type` string. Keying the
+   * behaviour off `type === 'Album Cover'` would put a rendering decision at
+   * the mercy of a spelling — 'Album cover', 'album-cover', a stray plural —
+   * and break silently the first time someone typed one. The data being there
+   * is the condition.
+   */
+  readonly spotifyUrl?: string
 }
 
 export interface Project {

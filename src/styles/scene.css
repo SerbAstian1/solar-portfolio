@@ -623,3 +623,18 @@
   color:var(--orange);
 }
 .project-facts dd{font-size:var(--text-micro); color:rgba(255,255,255,0.6); line-height:1.5;}
+
+/* An album cover stands alone: one square, no card, nothing to open. Capped in
+   width so a wide panel does not blow it up past the size anyone would judge
+   a cover at. */
+.project-cover{
+  display:flex; flex-direction:column; gap:8px;
+  max-width:min(420px,100%); margin-top:var(--space-5);
+}
+.project-cover figcaption{
+  font-size:var(--text-micro); color:rgba(255,255,255,0.55);
+  text-transform:uppercase; letter-spacing:var(--tracking-label);
+  font-family:var(--font-head);
+}
+/* Two outbound links can sit side by side, and wrap rather than overflow. */
+.project-detail-actions{display:flex; flex-wrap:wrap; gap:var(--space-3);}
