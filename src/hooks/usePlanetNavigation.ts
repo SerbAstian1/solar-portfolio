@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { OPEN_PHASES, TOTAL_OPEN } from '../utils/transitionEasing'
+import { OPEN_PHASES, TOTAL_CLOSE, TOTAL_OPEN } from '../utils/transitionEasing'
 
 /** Direction of travel: 1 opens a panel, -1 closes it. */
 export type TransitionDirection = 1 | -1
@@ -60,14 +60,20 @@ export function usePlanetNavigation(): PlanetNavigation {
     if (!tr.active) return
 
     const elapsed = performance.now() - tr.startTime
-    const raw = Math.min(elapsed / TOTAL_OPEN, 1)
+    // Closing runs on its own, shorter clock — see CLOSE_SCALE.
+    const span = tr.direction === 1 ? TOTAL_OPEN : TOTAL_CLOSE
+    const raw = Math.min(elapsed / span, 1)
     tr.progress = tr.direction === 1 ? raw : 1 - raw
 
     const opening = tr.direction === 1
     const isComplete = opening ? tr.progress >= 1 : tr.progress <= 0
 
     if (opening) {
-      setPanelVisible(tr.progress >= OPEN_PHASES.reposition)
+      /* Overlapped with the camera rather than queued behind it. The panel
+         begins as the approach ends and fades in *while* the system
+         repositions, which is what removes the dead half-second where the
+         camera had arrived and there was still nothing to read. */
+      setPanelVisible(tr.progress >= OPEN_PHASES.approach)
       if (isComplete) {
         tr.active = false
         setIsTransitioning(false)

@@ -20,9 +20,11 @@ export const DURATION = {
   /** Tooltips and small reveals. */
   hint: 0.22,
   /** In-panel content swaps. */
-  content: 0.3,
+  content: 0.2,
   /** Scrims and overlays. */
-  scrim: 0.35,
-  /** The panel itself entering. */
-  panel: 0.45,
+  scrim: 0.2,
+  /** The panel itself entering. It now overlaps the camera's reposition
+   *  rather than following it, so this is the tail of the sequence and not a
+   *  further wait added onto the end of it. */
+  panel: 0.26,
 } as const
