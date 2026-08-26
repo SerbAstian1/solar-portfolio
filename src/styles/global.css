@@ -4,11 +4,16 @@
   --black:#000000;
   --white:#FFFFFF;
   --line: rgba(255,255,255,0.16);
-  /* Lightened accent for small text. #EB5E28 on black measures 4.62:1 —
-     it clears AA for normal text, but with almost no margin, and the
-     eyebrow labels set it at 0.6875rem uppercase with wide tracking where
-     that margin matters. This variant measures 6.1:1. */
-  --orange-text:#F5854F;
+  /* There was a second, lightened accent here — #F5854F — kept for small text
+     on the stated grounds that the brand orange measured 4.62:1 on black and
+     therefore cleared AA with almost no margin.
+     
+     That measurement was wrong. #EB5E28 on black is 6.16:1, and 5.88:1 on the
+     panel's surface: comfortably past the 4.5:1 normal-text threshold with
+     room to spare, at every size it is used. The lighter variant was solving a
+     problem the brand colour did not have, at the cost of the site showing two
+     oranges where the identity has one. Every use of it now resolves to
+     --orange above. */
   /* Pressed-state wash. The only place the brand colour is used as a fill
      rather than as ink or a border, so it is named rather than inlined. */
   --orange-wash:rgba(235,94,40,0.14);
@@ -104,7 +109,17 @@ a{color:inherit; text-decoration:none;}
 .btn-outline{
   display:inline-flex; align-items:center; gap:var(--space-2);
   font-family:var(--font-head); font-weight:600; font-size:var(--text-body-sm);
-  padding:14px 26px; border:1px solid var(--white); border-radius:0;
+  /* Set in caps, matching the close control, the eyebrows and the telemetry
+     rail — the interface's whole label register. Uppercase loses the word-shape
+     cue that lowercase gives, so it takes positive tracking to stay readable;
+     --tracking-label is the value the rest of the site's caps already use. */
+  text-transform:uppercase; letter-spacing:var(--tracking-label);
+  /* 40px tall exactly. min-height rather than height so a label that wraps at
+     a narrow viewport grows the control instead of spilling out of it; with
+     border-box the border is inside the 40, and align-items:center above does
+     the vertical centring so the padding only has to hold the sides. */
+  min-height:40px; padding:0 22px;
+  border:1px solid var(--white); border-radius:0;
   background:transparent; color:var(--white); cursor:pointer;
   text-decoration:none;
   transition:border-color var(--dur-hover) ease-out,
@@ -170,11 +185,12 @@ a{color:inherit; text-decoration:none;}
    rather than machined. The stroke is therefore redrawn as a background
    gradient: a 45-degree band placed exactly where the cut runs.
 
-   That placement is not a fudge. The chamfer joins (0, cut) to (cut, 0), and a
-   line through those two points leaves the box immediately at both ends — so
-   the gradient's band, which would otherwise stripe the whole element, is
-   clipped to precisely the chamfer and nothing else. Its distance from the
-   top-left corner is cut x cos(45deg), hence the 0.7071.
+   That placement is not a fudge. The chamfer joins (100% - cut, 100%) to
+   (100%, 100% - cut), and a line through those two points leaves the box
+   immediately at both ends — so the gradient's band, which would otherwise
+   stripe the whole element, is clipped to precisely the chamfer and nothing
+   else. 315deg puts the gradient's origin at the bottom-right corner, and the
+   band's distance from it is cut x cos(45deg), hence the 0.7071.
 
    `--edge` drives the border and the diagonal from one value, so a hover state
    only has to restate the colour once. Custom properties do not interpolate
@@ -193,9 +209,15 @@ a{color:inherit; text-decoration:none;}
   --cut:var(--cut-sm);
   --edge:var(--line);
   border-radius:0;
-  clip-path:polygon(0 var(--cut), var(--cut) 0, 100% 0, 100% 100%, 0 100%);
+  clip-path:polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    0 100%
+  );
   background-image:linear-gradient(
-    135deg,
+    315deg,
     transparent calc(var(--cut) * 0.7071),
     var(--edge) calc(var(--cut) * 0.7071),
     var(--edge) calc(var(--cut) * 0.7071 + 1px),
@@ -267,7 +289,7 @@ a{color:inherit; text-decoration:none;}
 }
 /* The label reads as the quietest of the three; the value it introduces is
    what the eye should land on. */
-.telemetry-field.is-left{color:var(--orange-text); white-space:nowrap;}
+.telemetry-field.is-left{color:var(--orange); white-space:nowrap;}
 .telemetry-field.is-centre{color:var(--white); white-space:nowrap;}
 .telemetry-field.is-right{color:rgba(255,255,255,0.55); white-space:nowrap;}
 

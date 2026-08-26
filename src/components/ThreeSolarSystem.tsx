@@ -132,6 +132,16 @@ const PLANET_DITHER: DitherPalette = {
  * cells thin out across the disk.
  */
 const SUN_DITHER: DitherPalette = {
+  /* The one place the brand orange is deliberately not used.
+     
+     Taking the highlight down to #EB5E28 was tried and reverted: measured off
+     a frame, the star's core fell to #971505, because the brand colour is a
+     mid-tone and a dithered sphere spends most of its cells *below* its
+     highlight. An emissive body needs its brightest cells above the accent to
+     read as a light source at all, and at the brand value the star came out a
+     dark ember. #FFD68A is that headroom. It is also the only object on the
+     page that emits rather than reflects, which is the argument for letting it
+     sit outside the palette rather than an exception to be tidied away. */
   dark: '#160804',
   light: '#FFD68A',
   glow: '#EB5E28',
@@ -245,7 +255,10 @@ function setModelEmphasis(object: THREE.Object3D, emphasis: number, settledDim =
       const standard = mat as THREE.MeshStandardMaterial
       if (!standard.emissive) return
       const glow = Math.max(0, emphasis - settledDim * 0.5)
-      standard.emissive.setRGB(0.18 * glow, 0.14 * glow, 0.08 * glow)
+      // Brand orange's own channel ratios (235, 94, 40 normalised), so the
+      // emphasis glow warms toward the identity rather than toward the cream
+      // this used to sit at.
+      standard.emissive.setRGB(0.18 * glow, 0.072 * glow, 0.031 * glow)
       standard.emissiveIntensity = glow * 0.55
     })
   })

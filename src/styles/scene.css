@@ -64,12 +64,12 @@
   left:50%; top:50%;
   width:138px; height:138px; border-radius:50%;
   transform:translate(-50%,-50%);
-  background-color:#ff9c38;
+  background-color:var(--orange);
   background-repeat:no-repeat;
   border:none; cursor:pointer; z-index:500;
   box-shadow:0 0 80px 24px rgba(235,94,40,0.32);
   display:grid; place-items:center;
-  font-family:var(--font-head); font-weight:700; font-size:var(--text-body-sm); color:#130f0b;
+  font-family:var(--font-head); font-weight:700; font-size:var(--text-body-sm); color:var(--black);
   text-shadow:0 0 2px rgba(255,255,255,0.6);
   overflow:hidden;
 }
@@ -144,7 +144,7 @@
   text-transform:uppercase;
   letter-spacing:var(--tracking-wide);
   font-size:var(--text-eyebrow);
-  color:var(--orange-text);
+  color:var(--orange);
   margin-bottom:var(--space-2);
 }
 .project-detail-meta p{
@@ -180,7 +180,7 @@
   font-size:var(--text-eyebrow);
   text-transform:uppercase;
   letter-spacing:var(--tracking-wide);
-  color:var(--orange-text);
+  color:var(--orange);
 }
 .project-card h3{
   font-family:var(--font-head);
@@ -269,7 +269,7 @@
   border:1px solid var(--orange); backdrop-filter:blur(6px);
   pointer-events:none;
 }
-.planet-preview .cat{font-size:var(--text-eyebrow); text-transform:uppercase; letter-spacing:var(--tracking-label); color:var(--orange-text); margin-bottom:6px;}
+.planet-preview .cat{font-size:var(--text-eyebrow); text-transform:uppercase; letter-spacing:var(--tracking-label); color:var(--orange); margin-bottom:6px;}
 .planet-preview h5{font-family:var(--font-head); font-size:var(--text-body); margin-bottom:6px; color:#fff;}
 .planet-preview p{font-size:var(--text-caption); color:rgba(255,255,255,0.7); line-height:var(--leading-tight);}
 
@@ -296,7 +296,13 @@
      rounded. Radius would read as consumer-soft; a 45-degree cut reads as
      machined, and it is the one shape doing the "futuristic" work here so the
      rest of the surface can stay quiet. */
-  clip-path:polygon(0 var(--cut-lg), var(--cut-lg) 0, 100% 0, 100% 100%, 0 100%);
+  clip-path:polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - var(--cut-lg)),
+    calc(100% - var(--cut-lg)) 100%,
+    0 100%
+  );
 }
 /**
  * The surface.
@@ -331,15 +337,21 @@
    structure rather than as ink. It reads as "this surface is live", which is
    the job the chamfer and the scanline cannot do on their own. */
 .panel-glass::before{
-  content:""; position:absolute; left:0; top:var(--cut-lg); bottom:0; width:2px;
+  content:""; position:absolute; left:0; top:0; bottom:0; width:2px;
   background:linear-gradient(to bottom, var(--orange), rgba(235,94,40,0));
   pointer-events:none;
 }
-/* Corner bracket, bottom right. HUD framing: two hairlines that imply a frame
-   without drawing one, so the panel stays open on three sides. */
+/* Corner bracket, bottom left. HUD framing: two hairlines that imply a frame
+   without drawing one, so the panel stays open on three sides.
+   
+   It has now been round three corners, and where it ended up is the argument:
+   bottom right is the chamfer's, so two marks competed for one corner; top
+   right is the close control's, and the bracket sat under it. Bottom left is
+   the one corner nothing else claims, and answering the chamfer diagonally
+   across the panel frames it better than crowding it. */
 .panel-glass::after{
-  content:""; position:absolute; right:20px; bottom:20px; width:18px; height:18px;
-  border-right:1px solid rgba(255,255,255,0.28);
+  content:""; position:absolute; left:20px; bottom:20px; width:18px; height:18px;
+  border-left:1px solid rgba(255,255,255,0.28);
   border-bottom:1px solid rgba(255,255,255,0.28);
   pointer-events:none;
 }
@@ -381,7 +393,7 @@
 .panel .eyebrow{
   display:flex; align-items:center; gap:var(--space-3);
   font-size:var(--text-eyebrow); text-transform:uppercase;
-  letter-spacing:var(--tracking-label); color:var(--orange-text);
+  letter-spacing:var(--tracking-label); color:var(--orange);
   margin-bottom:var(--space-3);
 }
 .panel .eyebrow::after{
@@ -432,7 +444,7 @@
   font-size:var(--text-eyebrow);
   text-transform:uppercase;
   letter-spacing:var(--tracking-wide);
-  color:var(--orange-text);
+  color:var(--orange);
   margin-bottom:var(--space-3);
 }
 .template-card h3{
@@ -478,7 +490,7 @@
 
 /* ===== Mobile fallback ===== */
 .mobile-nav{display:flex; flex-direction:column; min-height:100vh; padding:80px 24px 48px; gap:var(--space-3); color:#fff;}
-.mobile-nav .eyebrow{font-size:var(--text-micro); text-transform:uppercase; letter-spacing:var(--tracking-label); color:var(--orange-text); margin-bottom:var(--space-2);}
+.mobile-nav .eyebrow{font-size:var(--text-micro); text-transform:uppercase; letter-spacing:var(--tracking-label); color:var(--orange); margin-bottom:var(--space-2);}
 .mobile-nav h1{font-family:var(--font-head); font-size:var(--text-heading); margin-bottom:var(--space-8); max-width:14ch; color:#fff;}
 .mobile-tile{
   border:1px solid var(--line); padding:20px; display:flex; flex-direction:column; gap:6px;
@@ -487,12 +499,15 @@
 }
 .mobile-tile:hover, .mobile-tile:focus-visible{border-color:var(--orange); background-color:rgba(255,255,255,0.04);}
 .mobile-tile:active{background-color:rgba(255,255,255,0.07);}
-.mobile-tile .cat{font-size:var(--text-eyebrow); text-transform:uppercase; letter-spacing:var(--tracking-label); color:var(--orange-text);}
+.mobile-tile .cat{font-size:var(--text-eyebrow); text-transform:uppercase; letter-spacing:var(--tracking-label); color:var(--orange);}
 .mobile-tile h5{font-family:var(--font-head); font-size:var(--text-card);}
 .mobile-tile p{font-size:var(--text-caption); color:rgba(255,255,255,0.65);}
 @media (max-width:820px){
   /* Bottom padding clears the telemetry strip, which is fixed to the viewport
      and would otherwise sit over the last line of the panel. */
-  .panel{padding:80px 24px 96px; clip-path:polygon(0 24px, 24px 0, 100% 0, 100% 100%, 0 100%);}
+  .panel{
+    padding:80px 24px 96px;
+    clip-path:polygon(0 0, 100% 0, 100% calc(100% - 24px), calc(100% - 24px) 100%, 0 100%);
+  }
   .panel-close{top:22px; right:20px;}
 }
