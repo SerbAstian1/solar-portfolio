@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { PLANET_BODIES, getBody } from '../elements'
+import { BODIES, PLANET_BODIES, getBody } from '../elements'
 import { localPositionAt, orbitalPeriod } from '../kepler'
-import { computeTransit, type OccultationState } from '../occultation'
+import { bodyObscuration, computeTransit, type OccultationState } from '../occultation'
 
 /** Matches SUN_SIZE / 2 in the scene. */
 const STAR_RADIUS = 69
@@ -29,6 +29,139 @@ function sampleOrbit(id: string, steps = 4000) {
   return samples
 }
 
+/**
+ * Direction of travel, and what it fixes about the two events.
+ *
+ * The camera sits above the orbital plane, so the near half of every orbit is
+ * the *lower* half of the frame and the viewer sees the system turn
+ * anticlockwise — the view from above the north pole. That is not a free
+ * choice once the transit code is written against it: a body is in front of
+ * the star exactly when it is below it, so transits cross the bottom of the
+ * disk left to right and occultations pass above it right to left.
+ */
+describe('the system turns anticlockwise as the viewer sees it', () => {
+  /** Twice the signed area swept about the origin; positive is anticlockwise
+   *  in a y-up frame, which is what the orthographic camera gives us. */
+  function sweptArea(body: (typeof BODIES)[number]): number {
+    const period = orbitalPeriod(body.semiMajor)
+    let area = 0
+    for (let i = 0; i < 4000; i += 1) {
+      const p = localPositionAt(body, (i / 4000) * period, vec())
+      const q = localPositionAt(body, ((i + 1) / 4000) * period, vec())
+      area += p.x * q.y - p.y * q.x
+    }
+    return area
+  }
+
+  it('turns every body anticlockwise, moons included', () => {
+    for (const body of BODIES) {
+      expect(sweptArea(body)).toBeGreaterThan(0)
+    }
+  })
+
+  it('keeps a body in front of the star only while it is below it', () => {
+    // The invariant the whole transit/occultation split rests on. It was the
+    // other way up: in front meant above, which put the camera under the
+    // orbital plane and inverted both events.
+    for (const body of PLANET_BODIES) {
+      const period = orbitalPeriod(body.semiMajor)
+      for (let i = 0; i < 3000; i += 1) {
+        const p = localPositionAt(body, (i / 3000) * period, vec())
+        if (p.z > 0) expect(p.y).toBeLessThan(0)
+        if (p.z < 0) expect(p.y).toBeGreaterThan(0)
+      }
+    }
+  })
+
+  it('runs the transit left to right across the bottom of the disk', () => {
+    const body = getBody('work')!
+    const r = body.size / 2
+    const crossing = []
+    const period = orbitalPeriod(body.semiMajor)
+    for (let i = 0; i < 24000; i += 1) {
+      const p = localPositionAt(body, (i / 24000) * period, vec())
+      if (p.z >= 0 && Math.hypot(p.x, p.y) < STAR_RADIUS + r) crossing.push(p.x)
+    }
+    expect(crossing.length).toBeGreaterThan(0)
+    expect(crossing[crossing.length - 1]!).toBeGreaterThan(crossing[0]!)
+  })
+
+  it('runs the occultation right to left above it', () => {
+    const body = getBody('work')!
+    const r = body.size / 2
+    const passing = []
+    const period = orbitalPeriod(body.semiMajor)
+    for (let i = 0; i < 24000; i += 1) {
+      const p = localPositionAt(body, (i / 24000) * period, vec())
+      if (p.z < 0 && Math.hypot(p.x, p.y) < STAR_RADIUS + r) passing.push(p.x)
+    }
+    expect(passing.length).toBeGreaterThan(0)
+    expect(passing[passing.length - 1]!).toBeLessThan(passing[0]!)
+  })
+
+  it('spins the planets prograde, with the orbit rather than against it', () => {
+    // Orbital angular momentum r x v; the scene spins bodies about +y, so
+    // prograde needs L.y positive. Anticlockwise orbits made it negative and
+    // every planet turned backwards against its own path.
+    for (const body of PLANET_BODIES) {
+      const p = localPositionAt(body, 10, vec())
+      const q = localPositionAt(body, 10.001, vec())
+      const Ly = p.z * (q.x - p.x) - p.x * (q.z - p.z)
+      expect(Ly).toBeGreaterThan(0)
+    }
+  })
+})
+
+/**
+ * Which bodies reach the star at all. Only Work does, and the elements table
+ * records why the other four cannot at this tilt. These pin both halves of
+ * that claim, so neither an inclination drift nor a retune can quietly turn
+ * the system into one where nothing transits or everything does.
+ */
+describe('only the inner planet reaches the stellar disk', () => {
+  it('brings Work wholly onto the face and wholly behind it', () => {
+    const body = getBody('work')!
+    const r = body.size / 2
+    const period = orbitalPeriod(body.semiMajor)
+    let front = Infinity
+    let back = Infinity
+    for (let i = 0; i < 24000; i += 1) {
+      const p = localPositionAt(body, (i / 24000) * period, vec())
+      const d = Math.hypot(p.x, p.y)
+      if (p.z >= 0) front = Math.min(front, d)
+      else back = Math.min(back, d)
+    }
+    expect(front).toBeLessThan(STAR_RADIUS - r)
+    expect(back).toBeLessThan(STAR_RADIUS - r)
+  })
+
+  it('keeps the outer four clear of the disk entirely', () => {
+    for (const body of PLANET_BODIES) {
+      if (body.id === 'work') continue
+      const r = body.size / 2
+      const period = orbitalPeriod(body.semiMajor)
+      for (let i = 0; i < 3000; i += 1) {
+        const p = localPositionAt(body, (i / 3000) * period, vec())
+        expect(Math.hypot(p.x, p.y)).toBeGreaterThan(STAR_RADIUS + r)
+      }
+    }
+  })
+
+  it('nests the projected orbits instead of crossing them', () => {
+    const heights = PLANET_BODIES.map((body) => {
+      let top = 0
+      for (let i = 0; i < 2000; i += 1) {
+        const p = localPositionAt(body, (i / 2000) * orbitalPeriod(body.semiMajor), vec())
+        top = Math.max(top, Math.abs(p.y))
+      }
+      return top
+    })
+    for (let i = 1; i < heights.length; i += 1) {
+      expect(heights[i]!).toBeGreaterThan(heights[i - 1]!)
+    }
+  })
+})
+
 describe('the real system produces a real transit', () => {
   const samples = sampleOrbit('work')
   const coverages = samples.map((s) => s.transit.coverage)
@@ -48,13 +181,13 @@ describe('the real system produces a real transit', () => {
   })
 
   it('fully enters the disk rather than clipping the limb', () => {
-    // The defect this pins: at the system-wide 0.38 inclination the planet's
-    // projected orbit had a semi-minor axis of 64.6 against a stellar radius
-    // of 69, so its nearest approach in front was 62.5 — inside the limb but
-    // never inside R - r. It grazed the top edge and never crossed the face,
-    // which is what made the event look wrong. A full transit requires the
-    // separation to fall below R - r, and the light curve to flat-bottom at
-    // the disk-area ratio rather than peaking short of it.
+    // The defect this pins: at the old system-wide 0.38 inclination the
+    // planet's projected orbit had a semi-minor axis of 64.6 against a stellar
+    // radius of 69, so its nearest approach in front was 62.5 — inside the
+    // limb but never inside R - r. It grazed the top edge and never crossed
+    // the face, which is what made the event look wrong. A full transit needs
+    // the separation to fall below R - r, and the light curve to flat-bottom
+    // at the disk-area ratio rather than peaking short of it.
     const body = getBody('work')!
     const r = body.size / 2
     const minSeparation = Math.min(...samples.map((s) => s.transit.separation))
@@ -115,5 +248,82 @@ describe('the real system produces a real transit', () => {
         expect(transit.coverage).toBeLessThanOrEqual(1)
       }
     }
+  })
+})
+
+/**
+ * The reverse event: Work passing behind the star, half an orbit after it
+ * crosses in front of it. This is the larger of the two by far — the star
+ * hides all of the planet, while the planet hides 6% of the star — and it is
+ * the one a visitor actually notices, so its contacts are pinned here.
+ */
+describe('Work is occulted by the star on the far side of its orbit', () => {
+  const work = getBody('work')!
+  const r = work.size / 2
+  const period = orbitalPeriod(work.semiMajor)
+
+  const samples = Array.from({ length: 8000 }, (_, i) => {
+    const t = (i / 8000) * period
+    const p = localPositionAt(work, t, vec())
+    const separation = Math.hypot(p.x, p.y)
+    return {
+      t,
+      separation,
+      behind: p.z < 0,
+      hidden: p.z < 0 ? bodyObscuration(STAR_RADIUS, r, separation) : 0,
+    }
+  })
+
+  it('goes completely behind the star, not merely near it', () => {
+    expect(samples.some((s) => s.hidden === 1)).toBe(true)
+  })
+
+  it('is never dimmed while any part of it is still clear of the limb', () => {
+    for (const s of samples) {
+      if (s.separation >= STAR_RADIUS + r) expect(s.hidden).toBe(0)
+    }
+  })
+
+  it('is never fully hidden while part of it is still outside the disk', () => {
+    // The point-source version failed exactly here: it hit 1 at d = R.
+    for (const s of samples) {
+      if (s.separation > STAR_RADIUS - r) expect(s.hidden).toBeLessThan(1)
+    }
+  })
+
+  it('takes a real, comparable time to be eaten and to re-emerge', () => {
+    const step = period / 8000
+    const ingress = samples.filter((s) => s.behind && s.hidden > 0 && s.hidden < 1).length * step
+    // Both limb crossings together; each is a real event, not a snap.
+    expect(ingress).toBeGreaterThan(2)
+  })
+
+  it('is symmetric about mid-occultation', () => {
+    const deepest = samples.reduce((a, b) => (b.separation < a.separation && b.behind ? b : a))
+    const step = period / 8000
+    const before = samples.filter((s) => s.behind && s.hidden > 0 && s.t < deepest.t).length * step
+    const after = samples.filter((s) => s.behind && s.hidden > 0 && s.t > deepest.t).length * step
+    expect(Math.abs(before - after)).toBeLessThan(0.6)
+  })
+
+  it('hides nothing on the near side, for any planet', () => {
+    // The occultation belongs to the far half of the orbit only. On the near
+    // side the same separations occur, and reading them as the star hiding
+    // the planet would blank a planet that is in front of it — which is a
+    // transit, and the star's problem rather than the planet's.
+    for (const body of PLANET_BODIES) {
+      for (let i = 0; i < 2000; i += 1) {
+        const t = (i / 2000) * orbitalPeriod(body.semiMajor)
+        const p = localPositionAt(body, t, vec())
+        if (p.z >= 0) continue
+        expect(p.y).toBeGreaterThan(0)
+      }
+    }
+  })
+
+  it('gives Work a real totality, not just a close pass', () => {
+    const step = period / 8000
+    const totality = samples.filter((s) => s.hidden === 1).length * step
+    expect(totality).toBeGreaterThan(2)
   })
 })

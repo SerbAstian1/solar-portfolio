@@ -27,6 +27,17 @@ export interface Occultation {
   /** Apparent centre separation used for the calculation. */
   readonly separation: number
   readonly overlapArea: number
+  /**
+   * Projected centre and apparent radius of the transiting body.
+   *
+   * Carried so that `combineTransits` can tell whether two bodies are hiding
+   * the same patch of star or two different ones. `separation` alone cannot:
+   * two bodies at equal separation may be on opposite limbs or on top of each
+   * other, and those are not the same event.
+   */
+  readonly x: number
+  readonly y: number
+  readonly bodyRadius: number
 }
 
 export const CLEAR_TRANSIT: Occultation = {
@@ -35,6 +46,11 @@ export const CLEAR_TRANSIT: Occultation = {
   state: 'clear',
   separation: Number.POSITIVE_INFINITY,
   overlapArea: 0,
+  // A zero radius makes this body inert in every pairwise term below, which
+  // is what "not transiting" should mean to anything downstream.
+  x: 0,
+  y: 0,
+  bodyRadius: 0,
 }
 
 /**
@@ -88,6 +104,32 @@ export function circleOverlapArea(radiusA: number, radiusB: number, distance: nu
 export function stellarCoverage(starRadius: number, bodyRadius: number, distance: number): number {
   if (starRadius <= 0) return 0
   return clamp(circleOverlapArea(starRadius, bodyRadius, distance) / (Math.PI * starRadius ** 2), 0, 1)
+}
+
+/**
+ * Fraction of the *body's* disk hidden behind the star — the reverse event.
+ *
+ * Same lens area, different denominator: `stellarCoverage` divides it by the
+ * star's disk, this divides it by the body's. That single change is the whole
+ * difference between a transit and an occultation, and it is why the
+ * occultation is by far the larger visual event — the star hides all of a
+ * small planet, while the same planet hides only (Rp/R★)² of the star.
+ *
+ * The contact points fall out of the geometry instead of being tuned. Nothing
+ * is hidden until the two limbs touch at d = R + r; the body is wholly hidden
+ * only once its trailing limb passes inside at d = R − r. Between them the
+ * value is the exact area of the bite the limb takes out of it — not linear
+ * in d, and not symmetric about d = R: with the limb bowing away from the
+ * body's centre, slightly less than half the body is covered when its centre
+ * sits exactly on the limb.
+ */
+export function bodyObscuration(starRadius: number, bodyRadius: number, distance: number): number {
+  if (bodyRadius <= 0) return 0
+  return clamp(
+    circleOverlapArea(starRadius, bodyRadius, distance) / (Math.PI * bodyRadius ** 2),
+    0,
+    1,
+  )
 }
 
 /**
@@ -170,35 +212,92 @@ export function computeTransit(input: TransitInput): Occultation {
     ),
     separation,
     overlapArea,
+    x: position.x,
+    y: position.y,
+    bodyRadius: Math.abs(bodyRadius),
   }
+}
+
+/** Fraction of a body's own disk that lies on the star, 0–1. */
+function fractionOnStar(transit: Occultation): number {
+  if (transit.bodyRadius <= 0) return 0
+  return clamp(transit.overlapArea / (Math.PI * transit.bodyRadius ** 2), 0, 1)
 }
 
 /**
  * Combines several bodies' contributions into one figure for the star.
  *
- * Coverage sums, because two separate bodies on the disk hide two separate
- * patches of it. That over-counts if the bodies also overlap each other,
- * which the orbit spacing here makes impossible — the tests pin the spacing
- * that guarantees it. The result is clamped so no arrangement can ever report
- * the star as more than fully hidden.
+ * What is wanted is the area of the *union* of the transiting disks, because
+ * a patch of star hidden by two planets at once is still only hidden once.
+ * Plain summation is the union only while no two bodies overlap, which at the
+ * current inclinations is true by accident rather than by construction: only
+ * Work reaches the disk, so there is never a second body to overlap with.
+ * That guarantee is one number away from gone — flatten any other orbit
+ * enough to give it a transit and pairs start sharing the disk, at which
+ * point a sum would take a whole extra planet's worth of light out of the
+ * star at exactly the moment the viewer can see the two planets on top of
+ * one another. The union is computed properly so the figure stays right
+ * either way.
+ *
+ * So: sum, then subtract each pair's shared lens — inclusion–exclusion,
+ * stopped after the pairwise term. Two refinements make that honest rather
+ * than merely plausible:
+ *
+ *   The lens is weighted by the smaller of the two bodies' on-disk fractions.
+ *   The shared region only double-counts where it lies on the star, and during
+ *   ingress a pair can overlap each other out beyond the limb, where neither
+ *   is hiding anything to begin with.
+ *
+ *   The result is held between the largest single contribution and the plain
+ *   sum. A union can be neither smaller than its biggest member nor larger
+ *   than the total, and those bounds are what keep the truncated series
+ *   well behaved: three bodies mutually overlapping would need a triple term
+ *   to be exact, and without it the pairwise subtraction overshoots. The
+ *   lower bound absorbs the overshoot instead of letting the star brighten.
+ *
+ * Exact for any number of disjoint bodies, and exact for a pair that overlaps
+ * while both sit inside the disk — which between them are every arrangement
+ * these orbits can produce at any inclination.
  */
-export function combineTransits(transits: readonly Occultation[]): Occultation {
-  let coverage = 0
-  let overlapArea = 0
+export function combineTransits(
+  transits: readonly Occultation[],
+  starRadius: number,
+): Occultation {
+  let summed = 0
+  let largest = 0
+  let shared = 0
   let nearest = CLEAR_TRANSIT
 
   for (const transit of transits) {
-    coverage += transit.coverage
-    overlapArea += transit.overlapArea
+    summed += transit.overlapArea
+    if (transit.overlapArea > largest) largest = transit.overlapArea
     if (transit.separation < nearest.separation) nearest = transit
   }
 
-  coverage = clamp(coverage, 0, 1)
+  for (let i = 0; i < transits.length; i += 1) {
+    const a = transits[i]!
+    if (a.overlapArea === 0) continue
+    for (let j = i + 1; j < transits.length; j += 1) {
+      const b = transits[j]!
+      if (b.overlapArea === 0) continue
+      const lens = circleOverlapArea(a.bodyRadius, b.bodyRadius, Math.hypot(a.x - b.x, a.y - b.y))
+      if (lens === 0) continue
+      shared += lens * Math.min(fractionOnStar(a), fractionOnStar(b))
+    }
+  }
+
+  const overlapArea = clamp(summed - shared, largest, summed)
+  const starArea = Math.PI * starRadius ** 2
+  const coverage = starArea > 0 ? clamp(overlapArea / starArea, 0, 1) : 0
+
   return {
     coverage,
     flux: 1 - coverage,
     state: nearest.state,
     separation: nearest.separation,
     overlapArea,
+    x: nearest.x,
+    y: nearest.y,
+    bodyRadius: nearest.bodyRadius,
   }
 }

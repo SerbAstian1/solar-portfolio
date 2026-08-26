@@ -5,6 +5,7 @@ import {
   circleOverlapArea,
   combineTransits,
   computeTransit,
+  bodyObscuration,
   occultationStateFor,
   stellarCoverage,
 } from '../occultation'
@@ -209,31 +210,147 @@ describe('apparent geometry', () => {
 })
 
 describe('combining bodies', () => {
-  const at = (x: number) =>
+  /** A body of radius r centred at (x, 0), in front of the star. */
+  const at = (x: number, radius = r) =>
     computeTransit({
       starRadius: R,
-      bodyRadius: r,
+      bodyRadius: radius,
       position: { x, y: 0, z: 10 },
       nextPosition: { x: x - 1, y: 0, z: 10 },
     })
 
-  it('sums separate contributions', () => {
-    const combined = combineTransits([at(0), at(1000)])
-    expect(combined.coverage).toBeCloseTo(at(0).coverage, 9)
+  const single = at(0).coverage
+
+  it('sums bodies that hide different patches of the star', () => {
+    // 40 apart, so the two disks are disjoint (2r = 34) but both on the face.
+    const combined = combineTransits([at(-20), at(20)], R)
+    expect(combined.coverage).toBeCloseTo(single * 2, 9)
+  })
+
+  it('ignores bodies that are not on the disk at all', () => {
+    expect(combineTransits([at(0), at(1000)], R).coverage).toBeCloseTo(single, 9)
+  })
+
+  /* The defect these pin: coverage used to be a plain sum, which was the
+     union only while no two bodies could overlap. Once every planet transits,
+     two of them share the disk about 6.6% of the time and overlap each other
+     about 2.5% of it — and a plain sum would take a whole extra planet's
+     worth of light out of the star at exactly the moment you can see the two
+     planets sitting on top of one another. */
+  it('counts a patch hidden by two bodies at once only once', () => {
+    const stacked = combineTransits([at(0), at(0)], R)
+    expect(stacked.coverage).toBeCloseTo(single, 9)
+  })
+
+  it('does not let a pile of bodies black out the star between them', () => {
+    const many = Array.from({ length: 40 }, () => at(0))
+    expect(combineTransits(many, R).coverage).toBeCloseTo(single, 9)
+  })
+
+  it('lands between the larger body and the plain sum when a pair overlaps', () => {
+    // 17 apart against radii of 17: the disks overlap across about half their
+    // width, so the union is strictly more than one and less than two.
+    const partial = combineTransits([at(-8.5), at(8.5)], R).coverage
+    expect(partial).toBeGreaterThan(single)
+    expect(partial).toBeLessThan(single * 2)
+  })
+
+  it('charges nothing for an overlap that happens out beyond the limb', () => {
+    // Two bodies overlapping each other where one of them is wholly off the
+    // star. The shared lens hides nothing, so subtracting it would brighten
+    // the star — the on-disk body's contribution has to survive untouched.
+    const grazing = at(80) // straddling the limb, partly on the face
+    const outside = at(110) // wholly off it, but within 2r of the first
+    expect(grazing.coverage).toBeGreaterThan(0)
+    expect(outside.coverage).toBe(0)
+    expect(combineTransits([grazing, outside], R).coverage).toBeCloseTo(grazing.coverage, 12)
+  })
+
+  it('collapses a nearly coincident pair onto barely more than one body', () => {
+    // Centres 2 apart against radii of 17: the two hide almost the same patch,
+    // so the union has to sit just above one of them, not near twice one.
+    const pair = combineTransits([at(0), at(2)], R).coverage
+    expect(pair).toBeGreaterThanOrEqual(single)
+    expect(pair).toBeLessThan(single * 1.2)
   })
 
   it('never exceeds a fully hidden star', () => {
-    const many = Array.from({ length: 40 }, () => at(0))
-    expect(combineTransits(many).coverage).toBe(1)
-    expect(combineTransits(many).flux).toBe(0)
+    const eclipsed = combineTransits([at(0, R * 2)], R)
+    expect(eclipsed.coverage).toBe(1)
+    expect(eclipsed.flux).toBe(0)
   })
 
   it('reports the state of the body nearest the disk centre', () => {
-    expect(combineTransits([at(1000), at(0)]).state).toBe('full-transit')
+    expect(combineTransits([at(1000), at(0)], R).state).toBe('full-transit')
+  })
+
+  it('carries the nearest body forward, so the result is still a body', () => {
+    const combined = combineTransits([at(1000), at(3)], R)
+    expect(combined.x).toBe(3)
+    expect(combined.bodyRadius).toBe(r)
   })
 
   it('is clear for an empty set', () => {
-    expect(combineTransits([]).coverage).toBe(0)
-    expect(combineTransits([]).flux).toBe(1)
+    expect(combineTransits([], R).coverage).toBe(0)
+    expect(combineTransits([], R).flux).toBe(1)
+  })
+
+  it('is order independent', () => {
+    const bodies = [at(-20), at(0), at(6), at(1000)]
+    const forward = combineTransits(bodies, R).coverage
+    const backward = combineTransits([...bodies].reverse(), R).coverage
+    expect(forward).toBeCloseTo(backward, 12)
+  })
+})
+
+describe('body obscuration — the star hiding the planet', () => {
+  it('hides nothing until the two limbs touch', () => {
+    expect(bodyObscuration(R, r, R + r)).toBe(0)
+    expect(bodyObscuration(R, r, R + r + 0.001)).toBe(0)
+    expect(bodyObscuration(R, r, 1000)).toBe(0)
+  })
+
+  it('hides the body completely only once it is wholly inside the disk', () => {
+    expect(bodyObscuration(R, r, R - r)).toBeCloseTo(1, 9)
+    expect(bodyObscuration(R, r, R - r - 5)).toBe(1)
+    expect(bodyObscuration(R, r, 0)).toBe(1)
+  })
+
+  /* The bug this replaced: a point-source ramp reached 1 at d = R, with a
+     whole body radius still outside the limb, and started fading at
+     d = R + 26 in open sky. Both ends are pinned here. */
+  it('leaves the body fully lit while it is still clear of the limb', () => {
+    for (let d = R + r; d <= R + r + 40; d += 1) {
+      expect(bodyObscuration(R, r, d)).toBe(0)
+    }
+  })
+
+  it('still shows most of the body when its centre sits on the limb', () => {
+    // Slightly under half, because the limb bows away from the body's centre.
+    const onLimb = bodyObscuration(R, r, R)
+    expect(onLimb).toBeGreaterThan(0.4)
+    expect(onLimb).toBeLessThan(0.5)
+  })
+
+  it('rises monotonically as the body sinks behind the star', () => {
+    let previous = -1
+    for (let d = R + r + 5; d >= 0; d -= 0.25) {
+      const hidden = bodyObscuration(R, r, d)
+      expect(hidden).toBeGreaterThanOrEqual(previous - 1e-12)
+      previous = hidden
+    }
+  })
+
+  it('shares its numerator with stellarCoverage, differing only by disk area', () => {
+    for (const d of [40, 52, 60, 69, 78, 85]) {
+      expect(bodyObscuration(R, r, d) * (r * r)).toBeCloseTo(
+        stellarCoverage(R, r, d) * (R * R),
+        9,
+      )
+    }
+  })
+
+  it('is a degenerate zero for a body with no size', () => {
+    expect(bodyObscuration(R, 0, 10)).toBe(0)
   })
 })

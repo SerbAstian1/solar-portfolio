@@ -1,6 +1,15 @@
 import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Html, useGLTF } from '@react-three/drei'
+import {
+  applyDither,
+  isolateMaterials,
+  phaseFor,
+  setDitherHover,
+  setDitherPhase,
+  type DitherPalette,
+} from '../render/dither'
+import { clearTelemetry, publishTelemetry } from '../orbital/telemetry'
 import * as THREE from 'three'
 import type { MutableRefObject } from 'react'
 import type { TransitionState } from '../hooks/usePlanetNavigation'
@@ -23,6 +32,7 @@ import {
   stepSpring,
   worldPositionAt,
   CLEAR_TRANSIT,
+  bodyObscuration,
   combineTransits,
   computeTransit,
 } from '../orbital'
@@ -87,10 +97,69 @@ function setStellarFlux(object: THREE.Object3D, flux: number) {
   })
 }
 
+/**
+ * The dither palettes.
+ *
+ * Hexes mirror --black / --white / --orange in global.css. They are repeated
+ * rather than read because these are WebGL uniforms, not CSS: the shader needs
+ * numbers at material-compile time, and reading a custom property here would
+ * mean a getComputedStyle call per body per palette change.
+ *
+ * Planets sit in black and white at rest so the star is the only warm thing on
+ * screen, and warm to the brand orange only under the pointer — which makes
+ * hover a colour event rather than a scale or outline one, and keeps it
+ * legible on a body only a few dozen pixels across.
+ */
+const PLANET_DITHER: DitherPalette = {
+  /* Not the page's black. The unlit half of a body has to stay distinguishable
+     from the space behind it, or the planet loses its silhouette and reads as
+     a scatter of light cells rather than as a sphere. */
+  dark: '#1E1E22',
+  light: '#FFFFFF',
+  glow: '#EB5E28',
+  cell: 2,
+  // Five tones. Enough to keep the terminator, the limb and the surface
+  // markings readable at 30-70px across; more than about six and the dither
+  // stops being visible as a texture at this cell size.
+  levels: 5,
+  gain: 1.9,
+}
+
+/**
+ * The star never goes monochrome — it is the light source, and a white one
+ * would leave the scene with no warmth at all. It dithers between a near-black
+ * shadow and a warm highlight, so the transit still reads: as flux drops, lit
+ * cells thin out across the disk.
+ */
+const SUN_DITHER: DitherPalette = {
+  dark: '#160804',
+  light: '#FFD68A',
+  glow: '#EB5E28',
+  cell: 2,
+  // One more than the planets: the star is the largest body on screen and
+  // carries the transit's flux ramp, which needs the tonal room to read.
+  levels: 6,
+  // The star is already the brightest thing rendered; it needs a nudge to
+  // reach full highlight, not the planets' rescue.
+  gain: 1.2,
+}
+
 const SUN_SIZE = 138
 const SUN_RADIUS = SUN_SIZE / 2
 const SUN_ROTATION_PERIOD = 70
-const SUN_OCCLUSION_SOFTNESS = 26
+
+/* Nats per second for the hover glow. At 9 the glow is ~99% of the way there
+   in a third of a second: quick enough to feel attached to the pointer,
+   slow enough to read as warming rather than switching. */
+/* How lit a body stays when its night side is turned to us and there is
+   nothing behind it but space. Physically it should be black; at 0.40 it reads
+   as a clearly darkened disc that can still be found and clicked. Measured
+   against the far-side bodies it sits at roughly half their brightness, which
+   is enough to say "this one is facing away" without saying "this one is
+   gone". */
+const PHASE_FLOOR_IN_SPACE = 0.4
+
+const HOVER_GLOW_RATE = 9
 
 const SELECTED_EMPHASIS_SCALE = 1.25
 const DISTANT_OPACITY = 0.45
@@ -145,19 +214,25 @@ function useSystemScale() {
 }
 
 /**
- * 0 when a planet is fully visible, 1 when it should be fully hidden behind
- * the sun. Only triggers when the planet is actually farther from the camera
- * than the sun (negative z) AND within the sun's on-screen radius — a planet
- * passing in front of the sun (positive z) is left alone; normal depth
- * testing already paints it over the sun correctly in that case.
+ * 0 when a planet is fully visible, 1 when it is completely behind the sun.
+ *
+ * Only the far side counts: a planet in front (positive z) is transiting, and
+ * depth testing already paints it over the sun there.
+ *
+ * The figure is the fraction of the planet's own disk that the star's disk
+ * covers, so the contacts are the real ones — full brightness until the two
+ * limbs touch at R + r, fully hidden only once the trailing limb passes
+ * inside at R − r. The previous version treated the planet as a point and
+ * ramped over a fixed 26-unit band measured from the star's centre, which put
+ * the entire fade *outside* the star: Work began dissolving while still nine
+ * units clear of the limb and was completely gone the moment its centre
+ * touched it, with a whole radius of planet still sticking out into open sky.
+ * A body cannot fade out in empty space, and it cannot vanish while you can
+ * still see a quarter of it.
  */
-function getSunOcclusion(position: THREE.Vector3): number {
+function getSunOcclusion(position: THREE.Vector3, bodyRadius: number): number {
   if (position.z >= 0) return 0
-  const screenDist = Math.hypot(position.x, position.y)
-  const edge = SUN_RADIUS + SUN_OCCLUSION_SOFTNESS
-  if (screenDist >= edge) return 0
-  if (screenDist <= SUN_RADIUS) return 1
-  return 1 - (screenDist - SUN_RADIUS) / SUN_OCCLUSION_SOFTNESS
+  return bodyObscuration(SUN_RADIUS, bodyRadius, Math.hypot(position.x, position.y))
 }
 
 /** Apply emissive emphasis to GLB mesh materials — lightweight glow substitute. */
@@ -352,10 +427,12 @@ function PreviewTracker({
 interface ModelProps {
   url: string
   size: number
+  /** Omit to leave the model's own shading alone. */
+  dither?: DitherPalette
   onModelReady?: (model: THREE.Object3D | null) => void
 }
 
-function Model({ url, size, onModelReady }: ModelProps) {
+function Model({ url, size, dither, onModelReady }: ModelProps) {
   const { scene } = useGLTF(url) as unknown as { scene: THREE.Group }
   const model = useMemo(() => {
     const cloned = scene.clone(true)
@@ -366,6 +443,15 @@ function Model({ url, size, onModelReady }: ModelProps) {
     })
     return cloned
   }, [scene])
+
+  /* Every body in the scene is a clone of the same GLB, and cloning shares
+     materials. Isolating them here is what makes the per-body writes below —
+     opacity, emphasis, hover glow — land on one body instead of all of them. */
+  useEffect(() => {
+    const release = isolateMaterials(model)
+    if (dither) applyDither(model, dither)
+    return release
+  }, [model, dither])
   const scale = useMemo(() => {
     const bounds = new THREE.Box3().setFromObject(model)
     const dimensions = bounds.getSize(new THREE.Vector3())
@@ -454,6 +540,10 @@ interface MoonProps {
 function Moon({ body, parentSelected, onSelect }: MoonProps) {
   const groupRef = useRef<THREE.Group | null>(null)
   const spinRef = useRef<THREE.Group | null>(null)
+  const modelRef = useRef<THREE.Object3D | null>(null)
+  /* A moon's own position is relative to its planet, but the phase angle is
+     measured from the star. Reused across frames rather than allocated. */
+  const worldPosition = useRef(new THREE.Vector3())
   const reducedMotion = useReducedMotion()
 
   useFrame(({ clock }) => {
@@ -461,6 +551,10 @@ function Moon({ body, parentSelected, onSelect }: MoonProps) {
     const t = reducedMotion ? 0 : clock.elapsedTime
     localPositionAt(body, t, groupRef.current.position)
     if (spinRef.current) spinRef.current.rotation.y = (t / body.spin) * TAU
+    if (modelRef.current) {
+      groupRef.current.getWorldPosition(worldPosition.current)
+      setDitherPhase(modelRef.current, phaseFor(worldPosition.current))
+    }
   })
 
   if (!parentSelected) return null
@@ -469,7 +563,14 @@ function Moon({ body, parentSelected, onSelect }: MoonProps) {
     <group ref={groupRef}>
       <group rotation={[0, 0, body.axialTilt]}>
         <group ref={spinRef}>
-          <Model url="/planet3d.glb" size={body.size} />
+          <Model
+            url="/planet3d.glb"
+            size={body.size}
+            dither={PLANET_DITHER}
+            onModelReady={(model) => {
+              modelRef.current = model
+            }}
+          />
         </group>
       </group>
       <mesh
@@ -523,6 +624,10 @@ function Planet({
   const spinRef = useRef<THREE.Group | null>(null)
   const occludedRef = useRef(false)
   const labelRef = useRef<HTMLSpanElement | null>(null)
+  /* Eased rather than switched, so the glow arrives and leaves rather than
+     popping. Held in a ref because it changes every frame and React must not
+     re-render the planet for it. */
+  const hoverGlowRef = useRef(0)
   const isSelected = selectedId === data.id
   const isDisabled = isLocked
   const reducedMotion = useReducedMotion()
@@ -543,7 +648,7 @@ function Planet({
     }
   }, [data.id, planetRefs])
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock }, delta) => {
     if (!orbitRef.current) return
 
     // Frozen at t=0 for reduced motion: bodies keep their distinct starting
@@ -622,16 +727,58 @@ function Planet({
       const model = modelRefs.current[data.id]
       const baseOpacity = progress > 0 ? lerp(1, DISTANT_OPACITY, fadeT) : 1
 
-      // Occultation: hide the planet when its orbit carries it behind and
-      // within the sun's silhouette — passing in front is left to normal depth
-      // testing, which already paints it over the sun. With the plane properly
-      // tilted only the innermost orbit reaches the sun's disc at all.
-      const occlusion = getSunOcclusion(orbitRef.current.position)
+      // Occultation: the sun hiding the planet on the far side of the orbit.
+      // Passing in front is left to depth testing, which already paints the
+      // planet over the sun. With the plane tilted as it is, only Work's
+      // orbit reaches the sun's disc at all.
+      //
+      // The fraction is geometric, so ingress and egress take exactly as long
+      // as the planet's own width says they should. Depth testing supplies the
+      // hard limb edge for free while the sun is opaque; this fade is what
+      // keeps the event right during a panel transition, when the sun drops to
+      // DISTANT_OPACITY, stops writing depth, and would otherwise let the
+      // planet show straight through it.
+      const occlusion = getSunOcclusion(orbitRef.current.position, orbit.size / 2)
+      // 90% of the planet's area behind the star — too little left to aim at.
       occludedRef.current = occlusion > 0.9
 
       if (model) {
         setModelOpacity(model, baseOpacity * (1 - occlusion))
         setModelEmphasis(model, 0, 0)
+        /* Frame-rate independent easing: the fraction of the remaining gap
+           closed per second is fixed, so this settles in the same wall-clock
+           time at any refresh rate. A plain per-frame lerp would be twice as
+           fast on a 120Hz display. A planet being swallowed by the star is
+           not hoverable, so the occultation drags the glow down with it. */
+        const target = isHovered ? 1 - occlusion : 0
+        hoverGlowRef.current +=
+          (target - hoverGlowRef.current) * (1 - Math.exp(-delta * HOVER_GLOW_RATE))
+        setDitherHover(model, hoverGlowRef.current)
+
+        /* Lit by the star, not by the camera. Without this every planet shows
+           a full face at every point in its orbit, and the transit — the one
+           moment the body is genuinely backlit — draws it as a bright moon
+           sitting on the star instead of as the silhouette crossing it that a
+           transit actually is. The position is already in star-centred
+           coordinates, which is exactly what the phase angle needs.
+
+           The floor falls away as the body moves onto the stellar disk, using
+           the same overlap fraction the occultation uses on the far side. In
+           open space the body keeps enough light to stay findable; crossing
+           the star it is free to go fully black, which is what makes the
+           transit read as a silhouette rather than as a grey patch. */
+        const separation = Math.hypot(
+          orbitRef.current.position.x,
+          orbitRef.current.position.y,
+        )
+        const againstStar =
+          orbitRef.current.position.z > 0
+            ? bodyObscuration(SUN_RADIUS, orbit.size / 2, separation)
+            : 0
+        setDitherPhase(
+          model,
+          phaseFor(orbitRef.current.position, PHASE_FLOOR_IN_SPACE * (1 - againstStar)),
+        )
       }
       if (labelRef.current) {
         labelRef.current.style.opacity = String(1 - occlusion)
@@ -653,6 +800,7 @@ function Planet({
             <Model
               url="/planet3d.glb"
               size={orbit.size}
+              dither={PLANET_DITHER}
               onModelReady={(model) => {
                 modelRefs.current[data.id] = model
               }}
@@ -713,6 +861,8 @@ function Sun({
   const lastState = useRef<string>('clear')
   const reducedMotion = useReducedMotion()
   const groupRef = useRef<THREE.Group | null>(null)
+  // Stale telemetry must not outlive the canvas; the strip reads it either way.
+  useEffect(() => clearTelemetry, [])
   const { scene } = useGLTF('/sun3d.glb') as unknown as { scene: THREE.Group }
   const model = useMemo(() => scene.clone(true), [scene])
   const scale = useMemo(() => {
@@ -722,6 +872,15 @@ function Sun({
     return SUN_SIZE / Math.max(dimensions.x, dimensions.y)
   }, [model])
 
+  /* The star owns its materials for the same reason the planets do: the
+     transit writes emissive per frame, and a shared material would leak that
+     onto anything else cloned from the same GLB. */
+  useEffect(() => {
+    const release = isolateMaterials(model)
+    applyDither(model, SUN_DITHER)
+    return release
+  }, [model])
+
   useFrame(({ clock }) => {
     if (!groupRef.current) return
     groupRef.current.rotation.y = ((reducedMotion ? 0 : clock.elapsedTime) / SUN_ROTATION_PERIOD) * TAU
@@ -729,8 +888,13 @@ function Sun({
     const fadeT = phaseProgress(progress, 0, OPEN_PHASES.approach)
     setModelOpacity(groupRef.current, lerp(1, DISTANT_OPACITY, fadeT))
 
-    const transit = combineTransits(Object.values(transitRefs.current))
+    const transit = combineTransits(Object.values(transitRefs.current), SUN_RADIUS)
     setStellarFlux(groupRef.current, transit.flux)
+
+    /* Published for the telemetry strip, which lives outside the canvas and
+       outside this lazily loaded chunk. A ref write per frame, never React
+       state — the coverage number changing must not re-render the scene. */
+    publishTelemetry(clock.elapsedTime, transit)
 
     // React only hears about phase changes, not every frame — the coverage
     // number itself stays in the frame loop where it belongs.

@@ -1,7 +1,9 @@
 import {
   BASE_PERIOD,
   BASE_SEMI_MAJOR,
+  DEPTH_TO_SCREEN_Y,
   KEPLER_ITERATIONS,
+  ORBIT_DIRECTION,
   ORBIT_TILT,
   PERIHELION_COS,
   PERIHELION_SIN,
@@ -55,8 +57,13 @@ export function orbitPosition<T extends MutableVec3>(
   target: T,
 ): T {
   const alongMajor = elements.semiMajor * (Math.cos(eccentric) - elements.eccentricity)
+  // ORBIT_DIRECTION reflects the path in the major axis, which is what
+  // reverses the sense of travel without touching the ellipse itself.
   const alongMinor =
-    elements.semiMajor * Math.sqrt(1 - elements.eccentricity ** 2) * Math.sin(eccentric)
+    ORBIT_DIRECTION *
+    elements.semiMajor *
+    Math.sqrt(1 - elements.eccentricity ** 2) *
+    Math.sin(eccentric)
 
   const planar = alongMajor * PERIHELION_COS - alongMinor * PERIHELION_SIN
   const depth = alongMajor * PERIHELION_SIN + alongMinor * PERIHELION_COS
@@ -66,7 +73,10 @@ export function orbitPosition<T extends MutableVec3>(
   // its orientation to the camera differs.
   const inclination = elements.inclination ?? ORBIT_TILT
   target.x = planar
-  target.y = depth * inclination
+  // Opposite signs on purpose: DEPTH_TO_SCREEN_Y puts the near half of the
+  // orbit at the bottom of the frame, so a body in front of the star is a body
+  // below it. See the constant for why this is the right way up.
+  target.y = DEPTH_TO_SCREEN_Y * depth * inclination
   target.z = depth * Math.sqrt(Math.max(0, 1 - inclination ** 2))
   return target
 }
