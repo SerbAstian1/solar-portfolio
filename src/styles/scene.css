@@ -464,56 +464,27 @@
 }
 
 /* ===== Project showcase =====
-   Four sections that rest collapsed and open on approach. */
-.showcase{display:flex; flex-direction:column; gap:var(--space-2); margin-top:var(--space-6);}
+   Sections are open. They do not collapse and they do not respond to hover.
+
+   They used to: each rested collapsed and expanded when the pointer entered.
+   Hover-expansion and scrolling compete for the same pixels, though — the
+   pointer holds still while the page travels under it, so sections opened and
+   closed on their own as they passed the cursor and shunted the content the
+   reader was moving through. The interaction moved down a level, onto the
+   individual marks, swatches and tiles, where nothing it does can alter the
+   height of the page. */
+.showcase{display:flex; flex-direction:column; gap:var(--space-4); margin-top:var(--space-6);}
 .showcase-card{border:1px solid var(--line); background-color:rgba(255,255,255,0.02);}
-.showcase-card:hover, .showcase-card:focus-within, .showcase-card.is-pinned{
-  border-color:rgba(235,94,40,0.55);
-}
 .showcase-head{
-  display:flex; align-items:center; gap:var(--space-3); width:100%;
-  padding:12px 14px; background:none; border:none; cursor:pointer;
-  font-family:var(--font-head); color:#fff; text-align:left;
+  display:flex; align-items:center; gap:var(--space-3);
+  padding:12px 14px; border-bottom:1px solid var(--line);
 }
 .showcase-label{
-  font-size:var(--text-eyebrow); text-transform:uppercase;
-  letter-spacing:var(--tracking-label); color:var(--orange); white-space:nowrap;
+  font-family:var(--font-head); font-size:var(--text-eyebrow);
+  text-transform:uppercase; letter-spacing:var(--tracking-label);
+  color:var(--orange); white-space:nowrap;
 }
-/* The collapsed state's only job: say what is inside without opening. */
-.showcase-summary{
-  flex:1; min-width:0; display:flex; align-items:center; gap:6px;
-  font-size:var(--text-micro); color:rgba(255,255,255,0.55);
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-}
-.showcase-caret{
-  width:8px; height:8px; flex:none;
-  border-right:1px solid rgba(255,255,255,0.5);
-  border-bottom:1px solid rgba(255,255,255,0.5);
-  transform:rotate(45deg) translate(-2px,-2px);
-  transition:transform var(--dur-hover) ease-out, border-color var(--dur-hover) ease-out;
-}
-.showcase-card:hover .showcase-caret,
-.showcase-card:focus-within .showcase-caret,
-.showcase-card.is-pinned .showcase-caret{
-  transform:rotate(-135deg) translate(-3px,-3px); border-color:var(--orange);
-}
-.summary-dots{display:inline-flex; gap:4px;}
-.summary-dot{width:10px; height:10px; border:1px solid rgba(255,255,255,0.25);}
-.summary-dot.is-invalid{background:repeating-linear-gradient(45deg,#444 0 3px,transparent 3px 6px);}
-
-/* 0fr to 1fr, so the open height comes from the content and never from a
-   number guessed against placeholder artwork. */
-.showcase-body{
-  display:grid; grid-template-rows:0fr;
-  transition:grid-template-rows 320ms var(--ease-out);
-}
-.showcase-card:hover .showcase-body,
-.showcase-card:focus-within .showcase-body,
-.showcase-card.is-pinned .showcase-body{grid-template-rows:1fr;}
-.showcase-body-inner{overflow:hidden; min-height:0;}
-.showcase-card:hover .showcase-body-inner,
-.showcase-card:focus-within .showcase-body-inner,
-.showcase-card.is-pinned .showcase-body-inner{padding:0 14px 14px;}
+.showcase-body{padding:14px;}
 
 .showcase-controls{display:flex; align-items:center; gap:var(--space-2); margin-bottom:var(--space-3);}
 .showcase-hint{font-size:var(--text-eyebrow); text-transform:uppercase; letter-spacing:var(--tracking-label); color:rgba(255,255,255,0.45);}
@@ -522,7 +493,8 @@
   padding:4px 10px; background:none; border:none; cursor:pointer;
   font-family:var(--font-head); font-size:var(--text-eyebrow);
   text-transform:uppercase; letter-spacing:var(--tracking-label);
-  color:rgba(255,255,255,0.6); transition:color var(--dur-hover) ease-out, background-color var(--dur-hover) ease-out;
+  color:rgba(255,255,255,0.6);
+  transition:color var(--dur-hover) ease-out, background-color var(--dur-hover) ease-out;
 }
 .ground-option.is-active{background-color:var(--orange); color:var(--black);}
 
@@ -535,16 +507,30 @@
 .showcase-item figcaption{
   display:flex; flex-direction:column; gap:2px;
   font-size:var(--text-micro); color:rgba(255,255,255,0.7);
+  transition:color var(--dur-hover) ease-out;
 }
 .application-caption{color:rgba(255,255,255,0.45);}
 
-/* The tile owns its size, so the artwork can be any dimensions. */
+/* ===== Item hover =====
+   Every one of these is paint only — colour, opacity, and a transform on the
+   image *inside* its own clipping box. None of them changes a layout box, so
+   a pointer resting on a tile mid-scroll cannot move the page under itself. */
 .asset-tile{
   position:relative; width:100%; overflow:hidden;
   border:1px solid var(--line); background-color:rgba(255,255,255,0.03);
   display:grid; place-items:center;
+  transition:border-color var(--dur-hover) ease-out;
 }
-.asset-tile img{width:100%; height:100%; display:block;}
+.asset-tile img{
+  width:100%; height:100%; display:block;
+  transition:transform 320ms var(--ease-out);
+}
+.showcase-item:hover .asset-tile,
+.showcase-item:focus-within .asset-tile{border-color:var(--orange);}
+/* The mark itself leans in. Scale on the image, never on the tile, so the
+   grid cell keeps its exact dimensions. */
+.showcase-item:hover .asset-tile img{transform:scale(1.05);}
+.showcase-item:hover figcaption{color:#fff;}
 .asset-tile.is-light{background-color:#F4F4F2;}
 .asset-tile.is-dark{background-color:#0B0B0E;}
 /* Placeholder: the layout is already right, the artwork simply is not here. */
@@ -556,25 +542,29 @@
   font-family:var(--font-head); font-size:var(--text-micro);
   text-transform:uppercase; letter-spacing:var(--tracking-label);
   color:rgba(255,255,255,0.4);
-  /* Wrap rather than clip: these stand in for artwork, and a half-word reads
-     as a bug rather than as a placeholder. */
-  overflow-wrap:anywhere; hyphens:auto; line-height:1.25;
+  overflow-wrap:anywhere; line-height:1.25;
 }
-/* An empty preview tile is the hatch alone. It is a glance at the work, and
-   the names live in the expanded grid where there is room to set them. */
-.preview-strip .asset-tile.is-empty{background-size:auto;}
 
 .swatch{
   display:flex; flex-direction:column; gap:2px; align-items:flex-start;
-  position:relative; min-height:88px; padding:10px;
+  position:relative; min-height:96px; padding:10px;
   border:1px solid var(--line); cursor:pointer;
   font-family:var(--font-head); text-align:left;
-  transition:transform var(--dur-hover) ease-out;
+  transition:box-shadow var(--dur-hover) ease-out;
 }
-.swatch:hover, .swatch:focus-visible{transform:translateY(-2px);}
+/* An inset ring rather than a lift: outside this tile nothing moves. */
+.swatch:hover, .swatch:focus-visible{box-shadow:inset 0 0 0 2px currentColor;}
 .swatch-name{font-size:var(--text-micro); font-weight:600;}
 .swatch-role{font-size:var(--text-eyebrow); opacity:0.75;}
 .swatch-hex{margin-top:auto; font-size:var(--text-eyebrow); font-variant-numeric:tabular-nums; opacity:0.9;}
+/* Drawn over the swatch, so revealing it costs no height. */
+.swatch-action{
+  position:absolute; right:8px; bottom:8px;
+  font-size:var(--text-eyebrow); text-transform:uppercase;
+  letter-spacing:var(--tracking-label);
+  opacity:0; transition:opacity var(--dur-hover) ease-out;
+}
+.swatch:hover .swatch-action, .swatch:focus-visible .swatch-action{opacity:0.85;}
 .swatch-flag{position:absolute; top:8px; right:8px; font-size:11px; opacity:0.7;}
 /* An unreadable value in the content file costs this one tile and nothing else. */
 .swatch.is-invalid{
@@ -583,32 +573,20 @@
 }
 
 .showcase-fonts{display:flex; flex-direction:column; gap:var(--space-3);}
-.specimen{border-left:2px solid var(--orange); padding-left:var(--space-3);}
+.specimen{
+  border-left:2px solid var(--line); padding-left:var(--space-3);
+  transition:border-color var(--dur-hover) ease-out;
+}
+.specimen:hover{border-left-color:var(--orange);}
 .specimen-meta{display:flex; gap:var(--space-2); align-items:baseline; flex-wrap:wrap;}
 .specimen-name{font-family:var(--font-head); font-size:var(--text-body-sm); color:#fff;}
 .specimen-role{font-size:var(--text-eyebrow); text-transform:uppercase; letter-spacing:var(--tracking-label); color:rgba(255,255,255,0.45);}
-.specimen-line{font-size:var(--text-lead); color:#fff; margin-top:4px; line-height:1.2;}
-
-
-
-/* ===== Showcase preview bands =====
-   The resting state of every section is artwork. These sit outside the
-   collapsing region, so opening a card adds detail rather than revealing the
-   work for the first time. */
-.showcase-preview{padding:0 14px 14px;}
-.preview-strip{
-  display:grid; gap:8px;
-  grid-template-columns:repeat(auto-fit,minmax(0,1fr));
+.specimen-line{
+  font-size:clamp(1.25rem, 3.5vw, 1.9rem); color:rgba(255,255,255,0.82);
+  margin-top:4px; line-height:1.2;
+  transition:color var(--dur-hover) ease-out;
 }
-.preview-strip.is-wide{grid-template-columns:repeat(auto-fit,minmax(0,1fr));}
-.preview-bars{display:flex; height:72px; border:1px solid var(--line);}
-/* Every colour takes an equal share of the width whatever the palette size. */
-.preview-bar{flex:1 1 0; min-width:0;}
-.preview-bar.is-invalid{background:repeating-linear-gradient(45deg,#333 0 6px,#222 6px 12px);}
-.preview-type{
-  font-size:clamp(1.25rem, 4vw, 2rem); line-height:1.15; color:#fff;
-  border-left:2px solid var(--orange); padding-left:var(--space-3);
-}
+.specimen:hover .specimen-line{color:#fff;}
 
 /* Reference matter, set to stay out of the way of the work above it. */
 .project-facts{

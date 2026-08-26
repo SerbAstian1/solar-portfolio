@@ -19,124 +19,29 @@ const SECTION_LABELS: Record<SectionId, string> = {
 }
 
 /**
- * A section that rests collapsed and opens on approach.
+ * A titled block of work. It does not collapse and it does not react to being
+ * hovered.
  *
- * Hover alone would have been the whole interaction, and would have been wrong
- * in two ways that matter. A touch device has no hover, so the detail would be
- * unreachable on a phone; and a keyboard user tabbing through would land
- * inside a section that never opened. The same reveal is therefore bound to
- * three things: hover, focus anywhere within, and a click that pins it open.
- * The header is a real button carrying aria-expanded, which is what a screen
- * reader and a thumb both use.
+ * It used to do both — the section rested collapsed and opened on hover — and
+ * that turned out to be the wrong level to put it at. Hover-expansion and
+ * scrolling want the same pixels: the pointer sits still while the page moves
+ * beneath it, so sections opened and shut on their own as they passed under
+ * the cursor, shifting the very content the reader was trying to move
+ * through. It is a fine interaction for something you approach deliberately
+ * and a bad one for something you scroll past.
  *
- * The open height animates from a 0fr to a 1fr grid row rather than from a
- * pixel max-height. That matters more here than it usually would: the point of
- * this component is that real artwork arrives later, and a max-height guessed
- * against placeholder content would clip the first time a project turned up
- * with six marks instead of three.
+ * The reveal moved down a level instead. Sections stay open, and the hover
+ * states live on the individual marks, swatches and tiles inside them, where
+ * nothing they do can change the height of the page.
  */
-function ShowcaseSection({
-  id,
-  label,
-  summary,
-  preview,
-  children,
-}: {
-  id: SectionId
-  label: string
-  summary: ReactNode
-  /** Always on screen, collapsed or not. This is the section's real content at
-   *  a glance; the body below it is the detail behind that glance. */
-  preview: ReactNode
-  children: ReactNode
-}) {
-  const [pinned, setPinned] = useState(false)
+function ShowcaseSection({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <section className={`showcase-card ${pinned ? 'is-pinned' : ''}`}>
-      <button
-        type="button"
-        className="showcase-head"
-        aria-expanded={pinned}
-        aria-controls={`showcase-body-${id}`}
-        onClick={() => setPinned((p) => !p)}
-      >
+    <section className="showcase-card">
+      <h4 className="showcase-head">
         <span className="showcase-label">{label}</span>
-        <span className="showcase-summary">{summary}</span>
-        <span className="showcase-caret" aria-hidden="true" />
-      </button>
-      {/* Outside the collapsing region on purpose: a card whose resting state
-          is a row of text is a list, and this is meant to be a look at the
-          work. The collapse hides the reading matter, never the artwork. */}
-      <div className="showcase-preview">{preview}</div>
-      <div className="showcase-body" id={`showcase-body-${id}`}>
-        {/* The clipping wrapper. min-height:0 on this is what lets the grid
-            row collapse to nothing at all. */}
-        <div className="showcase-body-inner">{children}</div>
-      </div>
+      </h4>
+      <div className="showcase-body">{children}</div>
     </section>
-  )
-}
-
-/** The resting view of each section: artwork, not description. */
-function LogoPreview({ logos }: { logos: readonly BrandLogo[] }) {
-  return (
-    <div className="preview-strip">
-      {logos.slice(0, 5).map((logo) => (
-        <AssetTile
-          key={logo.name}
-          src={logo.src}
-          label={logo.name}
-          ratio="4 / 3"
-          fit="contain"
-          ground="dark"
-          showLabel={false}
-        />
-      ))}
-    </div>
-  )
-}
-
-function PalettePreview({ palette }: { palette: readonly BrandColor[] }) {
-  return (
-    <div className="preview-bars" aria-hidden="true">
-      {palette.map((c) => {
-        const hex = normaliseHex(c.hex)
-        return (
-          <span
-            key={`${c.name}-${c.hex}`}
-            className={`preview-bar ${hex ? '' : 'is-invalid'}`}
-            style={hex ? { backgroundColor: hex } : undefined}
-          />
-        )
-      })}
-    </div>
-  )
-}
-
-function TypePreview({ fonts }: { fonts: readonly BrandFont[] }) {
-  const first = fonts[0]
-  if (!first) return null
-  return (
-    <p className="preview-type" style={first.stack ? { fontFamily: first.stack } : undefined}>
-      {first.sample ?? 'Handgloves 0123456789'}
-    </p>
-  )
-}
-
-function ApplicationPreview({ items }: { items: readonly BrandApplication[] }) {
-  return (
-    <div className="preview-strip is-wide">
-      {items.slice(0, 4).map((item) => (
-        <AssetTile
-          key={item.title}
-          src={item.src}
-          label={item.title}
-          ratio="3 / 2"
-          fit="cover"
-          showLabel={false}
-        />
-      ))}
-    </div>
   )
 }
 
@@ -163,9 +68,6 @@ function AssetTile({
   ratio: string
   fit?: 'cover' | 'contain'
   ground?: 'light' | 'dark'
-  /** Off in the preview strip, where tiles are too narrow to set a word like
-   *  "WORDMARK" without breaking it mid-word — which reads as a bug, not as a
-   *  placeholder. The names are carried by the expanded grid instead. */
   showLabel?: boolean
 }) {
   const [failed, setFailed] = useState(false)
@@ -189,6 +91,24 @@ function AssetTile({
         />
       )}
     </div>
+  )
+}
+
+/**
+ * The cover, on its own, with nothing to open.
+ *
+ * Shares AssetTile with the showcase so a missing or broken file degrades the
+ * same way here as everywhere else.
+ */
+export function ProjectCover({ cover }: { cover: { title: string; src?: string } }) {
+  return (
+    <figure className="project-cover">
+      {/* No label inside the tile: the caption below names it in both states,
+          and printing it twice reads as a mistake while the artwork is still
+          a placeholder. */}
+      <AssetTile src={cover.src} label={cover.title} ratio="1 / 1" fit="cover" showLabel={false} />
+      <figcaption>{cover.title}</figcaption>
+    </figure>
   )
 }
 
@@ -273,11 +193,17 @@ function PaletteSection({ palette }: { palette: readonly BrandColor[] }) {
             style={valid ? { backgroundColor: hex, color: ink } : undefined}
             onClick={() => valid && hex && copy(hex)}
             aria-label={`${colour.name}, ${hex ?? colour.hex}${valid ? '. Copy hex' : '. Unreadable value'}`}
-            title={valid ? 'Click to copy' : 'Unreadable colour value'}
           >
             <span className="swatch-name">{colour.name}</span>
             {colour.role && <span className="swatch-role">{colour.role}</span>}
             <span className="swatch-hex">{copied === hex ? 'Copied' : (hex ?? colour.hex)}</span>
+            {/* Revealed on hover of this swatch alone. It is drawn over the
+                tile rather than added to it, so it cannot change any height. */}
+            {valid && (
+              <span className="swatch-action" aria-hidden="true">
+                Copy
+              </span>
+            )}
             {tight && <span className="swatch-flag" aria-hidden="true">◑</span>}
           </button>
         )
@@ -326,53 +252,12 @@ function ApplicationSection({ items }: { items: readonly BrandApplication[] }) {
 }
 
 /**
- * The cover, on its own, with nothing to open.
- *
- * Shares AssetTile with the showcase so a missing or broken file degrades the
- * same way here as everywhere else: a labelled placeholder at the size the
- * artwork will occupy, never a broken-image icon.
- */
-export function ProjectCover({ cover }: { cover: { title: string; src?: string } }) {
-  return (
-    <figure className="project-cover">
-      {/* No label inside the tile: the caption below names it in both states,
-          and printing it twice reads as a mistake while the artwork is still
-          a placeholder. */}
-      <AssetTile src={cover.src} label={cover.title} ratio="1 / 1" fit="cover" showLabel={false} />
-      <figcaption>{cover.title}</figcaption>
-    </figure>
-  )
-}
-
-/** A row of colour dots — the most useful thing a collapsed palette can show,
- *  and readable at a glance without opening anything. */
-function PaletteSummary({ palette }: { palette: readonly BrandColor[] }) {
-  return (
-    <span className="summary-dots" aria-hidden="true">
-      {palette.slice(0, 8).map((c) => {
-        const hex = normaliseHex(c.hex)
-        return (
-          <span
-            key={`${c.name}-${c.hex}`}
-            className={`summary-dot ${hex ? '' : 'is-invalid'}`}
-            style={hex ? { backgroundColor: hex } : undefined}
-          />
-        )
-      })}
-    </span>
-  )
-}
-
-const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
-
-/**
  * The client-facing preview of a project: marks, palette, type, applications.
  *
  * Sections are built from whatever the content actually has. A project with
  * only a palette shows one section and no empty scaffolding; a project with
- * none of the four renders nothing — which is what lets the existing
- * placeholder projects sit beside a finished one without either looking
- * broken.
+ * none of the four renders nothing — which is what lets an album cover, which
+ * has none of them, sit beside a full brand system.
  */
 export default function ProjectShowcase({ detail }: { detail: ProjectDetail }) {
   const sections = useMemo(() => {
@@ -388,63 +273,14 @@ export default function ProjectShowcase({ detail }: { detail: ProjectDetail }) {
 
   return (
     <section className="showcase" aria-label="Project preview">
-      {sections.map((id) => {
-        const label = SECTION_LABELS[id]
-        if (id === 'logos') {
-          const logos = detail.logos!
-          return (
-            <ShowcaseSection
-              key={id}
-              id={id}
-              label={label}
-              summary={count(logos.length, 'mark', 'marks')}
-              preview={<LogoPreview logos={logos} />}
-            >
-              <LogoSection logos={logos} />
-            </ShowcaseSection>
-          )
-        }
-        if (id === 'palette') {
-          const palette = detail.palette!
-          return (
-            <ShowcaseSection
-              key={id}
-              id={id}
-              label={label}
-              summary={<PaletteSummary palette={palette} />}
-              preview={<PalettePreview palette={palette} />}
-            >
-              <PaletteSection palette={palette} />
-            </ShowcaseSection>
-          )
-        }
-        if (id === 'fonts') {
-          const fonts = detail.fonts!
-          return (
-            <ShowcaseSection
-              key={id}
-              id={id}
-              label={label}
-              summary={fonts.map((f) => f.name).join(' / ')}
-              preview={<TypePreview fonts={fonts} />}
-            >
-              <FontSection fonts={fonts} />
-            </ShowcaseSection>
-          )
-        }
-        const items = detail.applications!
-        return (
-          <ShowcaseSection
-            key={id}
-            id={id}
-            label={label}
-            summary={count(items.length, 'application', 'applications')}
-            preview={<ApplicationPreview items={items} />}
-          >
-            <ApplicationSection items={items} />
-          </ShowcaseSection>
-        )
-      })}
+      {sections.map((id) => (
+        <ShowcaseSection key={id} label={SECTION_LABELS[id]}>
+          {id === 'logos' && <LogoSection logos={detail.logos!} />}
+          {id === 'palette' && <PaletteSection palette={detail.palette!} />}
+          {id === 'fonts' && <FontSection fonts={detail.fonts!} />}
+          {id === 'applications' && <ApplicationSection items={detail.applications!} />}
+        </ShowcaseSection>
+      ))}
     </section>
   )
 }
