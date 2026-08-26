@@ -250,17 +250,21 @@ a{color:inherit; text-decoration:none;}
 }
 
 /* ===== Telemetry strip =====
-   A full-width instrument rail, not a headline. The three fields are justified
-   edge to edge so the bar spans any viewport structurally rather than by
-   stretching type to fit — the readout stays at a readable size and the
-   *spacing* does the stretching.
+   A full-width instrument rail. The three fields are justified edge to edge so
+   the bar spans any viewport structurally rather than by stretching type to
+   fit — the readout stays at a readable size and the *spacing* stretches.
 
-   Tabular figures are load-bearing: without them a ticking seconds digit
-   changes width and the whole left field jitters, which is the same class of
-   bug the button label had. */
+   It alternates a design tip with the clock. Those two slides want opposite
+   things from a narrow viewport, which is what the breakpoints below are for:
+   on the clock the date is the first thing that can go, while on a tip the
+   centre field *is* the content and the attribution goes first instead.
+
+   Tabular figures are load-bearing: without them the ticking seconds digit
+   changes width and shunts the field, which is the same bug class the button
+   label had. */
 .telemetry{
   position:fixed; left:0; right:0; bottom:0; z-index:90;
-  display:flex; flex-direction:column; gap:6px;
+  display:flex; flex-direction:column;
   padding:10px clamp(16px, 3vw, 40px) 12px;
   pointer-events:none;
   background:linear-gradient(to top, rgba(0,0,0,0.72), rgba(0,0,0,0));
@@ -274,37 +278,56 @@ a{color:inherit; text-decoration:none;}
 .telemetry.is-retracted{
   opacity:0; transform:translateY(100%); pointer-events:none;
 }
+/* The row is remounted on every slide change and not on every clock tick, so
+   this entrance replays exactly when the content turns over. */
 .telemetry-row{
-  display:flex; align-items:baseline; justify-content:space-between; gap:var(--space-4);
+  display:flex; align-items:baseline; justify-content:space-between;
+  gap:var(--space-4);
   font-family:var(--font-head); font-size:var(--text-micro);
   text-transform:uppercase; letter-spacing:var(--tracking-label);
   font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1;
-}
-.telemetry-row.is-entering{
   animation:telemetry-in 320ms var(--ease-out) both;
 }
 @keyframes telemetry-in{
   from{opacity:0; transform:translateY(4px);}
   to{opacity:1; transform:none;}
 }
-/* The label reads as the quietest of the three; the value it introduces is
-   what the eye should land on. */
 .telemetry-field.is-left{color:var(--orange); white-space:nowrap;}
 .telemetry-field.is-centre{color:var(--white); white-space:nowrap;}
 .telemetry-field.is-right{color:rgba(255,255,255,0.55); white-space:nowrap;}
-
-.telemetry-ticks{display:flex; gap:5px; justify-content:center;}
-.telemetry-tick{
-  width:14px; height:2px; background:var(--line);
-  transition:background var(--dur-hover) ease-out;
+/* A tip is centred in the display and carries the brand colour, so it reads
+   as the thing the rail is for rather than as a caption to the clock.
+   
+   The row switches from space-between to centred for tips: the clock has three
+   readings that want the full width between them, while a tip is one sentence
+   and its attribution, which belong together in the middle rather than pinned
+   to opposite edges of a 1440px bar. It is a sentence, not a label, so it
+   drops the wide label tracking, which at this length would push it off the
+   rail. */
+.telemetry-row.is-tip{
+  justify-content:center; gap:var(--space-3);
 }
-.telemetry-tick.is-active{background:var(--orange);}
+.telemetry-row.is-tip .telemetry-field.is-left{display:none;}
+.telemetry-row.is-tip .telemetry-field.is-centre{
+  color:var(--orange); letter-spacing:0.06em; min-width:0; text-align:center;
+}
 
-/* Below the layout breakpoint the middle field is the first thing to go: the
-   time and the offset are what a narrow bar has room to be honest about. */
-@media (max-width:640px){
-  .telemetry-field.is-centre{display:none;}
-  .telemetry-row{justify-content:space-between;}
+/* Below this the attribution is the first thing a tip can spare. */
+@media (max-width:1100px){
+  .telemetry-row.is-tip .telemetry-field.is-right{display:none;}
+}
+/* Then its number, leaving the tip the whole rail. The clock loses its date
+   here instead, since the time and the offset are what it must keep. */
+@media (max-width:760px){
+  .telemetry-row.is-tip .telemetry-field.is-centre{letter-spacing:0.03em;}
+  .telemetry-row.is-clock .telemetry-field.is-centre{display:none;}
+}
+/* Narrower than any tip can be set on one line. It wraps rather than
+   truncates: half a design tip is worse than a rail two lines tall. */
+@media (max-width:520px){
+  .telemetry-row.is-tip .telemetry-field.is-centre{
+    white-space:normal; line-height:1.35;
+  }
 }
 
 /* ===== Accessibility utilities ===== */

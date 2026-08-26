@@ -9,7 +9,6 @@ import {
   setDitherPhase,
   type DitherPalette,
 } from '../render/dither'
-import { clearTelemetry, publishTelemetry } from '../orbital/telemetry'
 import * as THREE from 'three'
 import type { MutableRefObject } from 'react'
 import type { TransitionState } from '../hooks/usePlanetNavigation'
@@ -874,8 +873,6 @@ function Sun({
   const lastState = useRef<string>('clear')
   const reducedMotion = useReducedMotion()
   const groupRef = useRef<THREE.Group | null>(null)
-  // Stale telemetry must not outlive the canvas; the strip reads it either way.
-  useEffect(() => clearTelemetry, [])
   const { scene } = useGLTF('/sun3d.glb') as unknown as { scene: THREE.Group }
   const model = useMemo(() => scene.clone(true), [scene])
   const scale = useMemo(() => {
@@ -903,11 +900,6 @@ function Sun({
 
     const transit = combineTransits(Object.values(transitRefs.current), SUN_RADIUS)
     setStellarFlux(groupRef.current, transit.flux)
-
-    /* Published for the telemetry strip, which lives outside the canvas and
-       outside this lazily loaded chunk. A ref write per frame, never React
-       state — the coverage number changing must not re-render the scene. */
-    publishTelemetry(clock.elapsedTime, transit)
 
     // React only hears about phase changes, not every frame — the coverage
     // number itself stays in the frame loop where it belongs.
