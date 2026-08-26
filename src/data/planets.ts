@@ -28,6 +28,45 @@ export const PLANETS: readonly PlanetContent[] = [
               { title: 'Logo suite', caption: 'Primary and secondary marks.' },
               { title: 'Color system', caption: 'Palette and mood explorations.' },
             ],
+            /* Placeholder content standing in for the real sheet. Colour and
+               type need no files and are shown as they will ship; the marks and
+               applications carry no `src` yet, so they render as labelled
+               placeholder tiles at the exact size the artwork will occupy.
+               Adding the files later is a one-line edit per item — the layout
+               is already correct without them. */
+            logos: [
+              { name: 'Primary lockup' },
+              { name: 'Symbol' },
+              { name: 'Wordmark' },
+              { name: 'Reversed' },
+            ],
+            palette: [
+              { name: 'Core', hex: '#EB5E28', role: 'Primary' },
+              { name: 'Ink', hex: '#0A0A0C', role: 'Text' },
+              { name: 'Bone', hex: '#F4F1EA', role: 'Surface' },
+              { name: 'Slate', hex: '#3C4048', role: 'Secondary' },
+              { name: 'Signal', hex: '#2FBF71', role: 'Accent' },
+            ],
+            fonts: [
+              {
+                name: 'Space Grotesk',
+                role: 'Display',
+                stack: '"Space Grotesk", sans-serif',
+                sample: 'Build the thing that lasts',
+              },
+              {
+                name: 'Inter',
+                role: 'Body',
+                stack: 'Inter, sans-serif',
+                sample: 'Handgloves 0123456789',
+              },
+            ],
+            applications: [
+              { title: 'Stationery', caption: 'Cards, letterhead, compliment slip.' },
+              { title: 'Packaging', caption: 'Primary carton and sleeve.' },
+              { title: 'Signage', caption: 'Fascia and wayfinding.' },
+              { title: 'Social', caption: 'Grid templates and story frames.' },
+            ],
             behanceUrl: 'https://www.behance.net/your-profile',
             highlights: [
               'Modular logo lockup and symbol system',

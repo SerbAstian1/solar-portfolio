@@ -4,6 +4,7 @@ import type { PlanetContent, Project } from '../data/types'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 import { DURATION, EASE_OUT_EXPO } from '../motion'
 import OutlineButton, { OutlineLink } from './OutlineButton'
+import ProjectShowcase from './ProjectShowcase'
 
 interface PanelOverlayProps {
   planet: PlanetContent | null
@@ -151,6 +152,8 @@ export default function PanelOverlay({
                     <li key={item}>{item}</li>
                   ))}
                 </ul>
+
+                <ProjectShowcase detail={activeProject.detail} />
 
                 <div className="project-detail-actions">
                   {activeProject.detail.behanceUrl && (

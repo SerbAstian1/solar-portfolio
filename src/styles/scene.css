@@ -511,3 +511,124 @@
   }
   .panel-close{top:22px; right:20px;}
 }
+
+/* ===== Project showcase =====
+   Four sections that rest collapsed and open on approach. */
+.showcase{display:flex; flex-direction:column; gap:var(--space-2); margin-top:var(--space-6);}
+.showcase-card{border:1px solid var(--line); background-color:rgba(255,255,255,0.02);}
+.showcase-card:hover, .showcase-card:focus-within, .showcase-card.is-pinned{
+  border-color:rgba(235,94,40,0.55);
+}
+.showcase-head{
+  display:flex; align-items:center; gap:var(--space-3); width:100%;
+  padding:12px 14px; background:none; border:none; cursor:pointer;
+  font-family:var(--font-head); color:#fff; text-align:left;
+}
+.showcase-label{
+  font-size:var(--text-eyebrow); text-transform:uppercase;
+  letter-spacing:var(--tracking-label); color:var(--orange); white-space:nowrap;
+}
+/* The collapsed state's only job: say what is inside without opening. */
+.showcase-summary{
+  flex:1; min-width:0; display:flex; align-items:center; gap:6px;
+  font-size:var(--text-micro); color:rgba(255,255,255,0.55);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.showcase-caret{
+  width:8px; height:8px; flex:none;
+  border-right:1px solid rgba(255,255,255,0.5);
+  border-bottom:1px solid rgba(255,255,255,0.5);
+  transform:rotate(45deg) translate(-2px,-2px);
+  transition:transform var(--dur-hover) ease-out, border-color var(--dur-hover) ease-out;
+}
+.showcase-card:hover .showcase-caret,
+.showcase-card:focus-within .showcase-caret,
+.showcase-card.is-pinned .showcase-caret{
+  transform:rotate(-135deg) translate(-3px,-3px); border-color:var(--orange);
+}
+.summary-dots{display:inline-flex; gap:4px;}
+.summary-dot{width:10px; height:10px; border:1px solid rgba(255,255,255,0.25);}
+.summary-dot.is-invalid{background:repeating-linear-gradient(45deg,#444 0 3px,transparent 3px 6px);}
+
+/* 0fr to 1fr, so the open height comes from the content and never from a
+   number guessed against placeholder artwork. */
+.showcase-body{
+  display:grid; grid-template-rows:0fr;
+  transition:grid-template-rows 320ms var(--ease-out);
+}
+.showcase-card:hover .showcase-body,
+.showcase-card:focus-within .showcase-body,
+.showcase-card.is-pinned .showcase-body{grid-template-rows:1fr;}
+.showcase-body-inner{overflow:hidden; min-height:0;}
+.showcase-card:hover .showcase-body-inner,
+.showcase-card:focus-within .showcase-body-inner,
+.showcase-card.is-pinned .showcase-body-inner{padding:0 14px 14px;}
+
+.showcase-controls{display:flex; align-items:center; gap:var(--space-2); margin-bottom:var(--space-3);}
+.showcase-hint{font-size:var(--text-eyebrow); text-transform:uppercase; letter-spacing:var(--tracking-label); color:rgba(255,255,255,0.45);}
+.ground-toggle{display:inline-flex; border:1px solid var(--line);}
+.ground-option{
+  padding:4px 10px; background:none; border:none; cursor:pointer;
+  font-family:var(--font-head); font-size:var(--text-eyebrow);
+  text-transform:uppercase; letter-spacing:var(--tracking-label);
+  color:rgba(255,255,255,0.6); transition:color var(--dur-hover) ease-out, background-color var(--dur-hover) ease-out;
+}
+.ground-option.is-active{background-color:var(--orange); color:var(--black);}
+
+/* auto-fill, so one item and twelve both lay out correctly. */
+.showcase-grid{display:grid; gap:var(--space-3);}
+.showcase-grid.is-logos{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));}
+.showcase-grid.is-applications{grid-template-columns:repeat(auto-fill,minmax(190px,1fr));}
+.showcase-grid.is-palette{grid-template-columns:repeat(auto-fill,minmax(128px,1fr));}
+.showcase-item{display:flex; flex-direction:column; gap:6px;}
+.showcase-item figcaption{
+  display:flex; flex-direction:column; gap:2px;
+  font-size:var(--text-micro); color:rgba(255,255,255,0.7);
+}
+.application-caption{color:rgba(255,255,255,0.45);}
+
+/* The tile owns its size, so the artwork can be any dimensions. */
+.asset-tile{
+  position:relative; width:100%; overflow:hidden;
+  border:1px solid var(--line); background-color:rgba(255,255,255,0.03);
+  display:grid; place-items:center;
+}
+.asset-tile img{width:100%; height:100%; display:block;}
+.asset-tile.is-light{background-color:#F4F4F2;}
+.asset-tile.is-dark{background-color:#0B0B0E;}
+/* Placeholder: the layout is already right, the artwork simply is not here. */
+.asset-tile.is-empty{
+  background-image:repeating-linear-gradient(45deg,rgba(255,255,255,0.05) 0 6px,transparent 6px 12px);
+}
+.asset-placeholder{
+  padding:8px; text-align:center;
+  font-family:var(--font-head); font-size:var(--text-micro);
+  text-transform:uppercase; letter-spacing:var(--tracking-label);
+  color:rgba(255,255,255,0.4);
+}
+
+.swatch{
+  display:flex; flex-direction:column; gap:2px; align-items:flex-start;
+  position:relative; min-height:88px; padding:10px;
+  border:1px solid var(--line); cursor:pointer;
+  font-family:var(--font-head); text-align:left;
+  transition:transform var(--dur-hover) ease-out;
+}
+.swatch:hover, .swatch:focus-visible{transform:translateY(-2px);}
+.swatch-name{font-size:var(--text-micro); font-weight:600;}
+.swatch-role{font-size:var(--text-eyebrow); opacity:0.75;}
+.swatch-hex{margin-top:auto; font-size:var(--text-eyebrow); font-variant-numeric:tabular-nums; opacity:0.9;}
+.swatch-flag{position:absolute; top:8px; right:8px; font-size:11px; opacity:0.7;}
+/* An unreadable value in the content file costs this one tile and nothing else. */
+.swatch.is-invalid{
+  background-image:repeating-linear-gradient(45deg,#333 0 6px,#222 6px 12px);
+  color:rgba(255,255,255,0.75); cursor:not-allowed;
+}
+
+.showcase-fonts{display:flex; flex-direction:column; gap:var(--space-3);}
+.specimen{border-left:2px solid var(--orange); padding-left:var(--space-3);}
+.specimen-meta{display:flex; gap:var(--space-2); align-items:baseline; flex-wrap:wrap;}
+.specimen-name{font-family:var(--font-head); font-size:var(--text-body-sm); color:#fff;}
+.specimen-role{font-size:var(--text-eyebrow); text-transform:uppercase; letter-spacing:var(--tracking-label); color:rgba(255,255,255,0.45);}
+.specimen-line{font-size:var(--text-lead); color:#fff; margin-top:4px; line-height:1.2;}
+
