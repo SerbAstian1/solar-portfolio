@@ -66,9 +66,20 @@ export default function PanelOverlay({
             exit={{ opacity: 0, y: 16, scale: 0.98 }}
             transition={{ duration: DURATION.panel, ease: EASE_OUT_EXPO }}
           >
-            <button className="panel-close" aria-label="Close panel" onClick={onClose}>
-              Close ✕
-            </button>
+            {/* One control, two jobs, and it sticks to the top of the scroll
+                area rather than scrolling away with the content — which is
+                what lets the duplicate "back to projects" button at the foot
+                of a long project go. Escape still closes the panel outright
+                from either level. */}
+            <div className="panel-bar">
+              <button
+                className="panel-close"
+                aria-label={activeProject ? 'Back to projects' : 'Close panel'}
+                onClick={activeProject ? () => setActiveProjectId(null) : onClose}
+              >
+                {activeProject ? '← Back' : 'Close ✕'}
+              </button>
+            </div>
 
             <div className="eyebrow">{planet.panel.eyebrow}</div>
             <h2 id="panel-title">{planet.panel.title}</h2>
@@ -122,49 +133,33 @@ export default function PanelOverlay({
                   <p>{activeProject.detail.summary}</p>
                 </div>
 
-                {activeProject.detail.previewImages && (
-                  <div className="project-detail-gallery">
-                    {activeProject.detail.previewImages.map((card) => (
-                      <div className="project-preview-card" key={card.title}>
-                        <div className="project-preview-thumb">
-                          <span>{card.title}</span>
-                        </div>
-                        <h4>{card.title}</h4>
-                        <p>{card.caption}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="project-detail-meta">
-                  <div>
-                    <strong>Role</strong>
-                    <p>{activeProject.detail.role}</p>
-                  </div>
-                  <div>
-                    <strong>Tools</strong>
-                    <p>{activeProject.detail.tools.join(', ')}</p>
-                  </div>
-                </div>
-
-                <ul className="project-detail-list">
-                  {activeProject.detail.highlights.map((item: string) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-
+                {/* The work comes first and takes the room. Everything below it
+                    is reference the client reads once, so it is set small and
+                    kept out of the way of the thing they came to look at. */}
                 <ProjectShowcase detail={activeProject.detail} />
 
-                <div className="project-detail-actions">
-                  {activeProject.detail.behanceUrl && (
+                <dl className="project-facts">
+                  <div>
+                    <dt>Role</dt>
+                    <dd>{activeProject.detail.role}</dd>
+                  </div>
+                  <div>
+                    <dt>Tools</dt>
+                    <dd>{activeProject.detail.tools.join(', ')}</dd>
+                  </div>
+                  <div>
+                    <dt>Delivered</dt>
+                    <dd>{activeProject.detail.highlights.join(' · ')}</dd>
+                  </div>
+                </dl>
+
+                {activeProject.detail.behanceUrl && (
+                  <div className="project-detail-actions">
                     <OutlineLink href={activeProject.detail.behanceUrl} target="_blank" rel="noreferrer">
                       Preview on Behance
                     </OutlineLink>
-                  )}
-                  <OutlineButton onClick={() => setActiveProjectId(null)}>
-                    Back to projects
-                  </OutlineButton>
-                </div>
+                  </div>
+                )}
               </motion.div>
             )}
 

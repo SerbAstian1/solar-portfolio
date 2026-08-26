@@ -39,11 +39,15 @@ function ShowcaseSection({
   id,
   label,
   summary,
+  preview,
   children,
 }: {
   id: SectionId
   label: string
   summary: ReactNode
+  /** Always on screen, collapsed or not. This is the section's real content at
+   *  a glance; the body below it is the detail behind that glance. */
+  preview: ReactNode
   children: ReactNode
 }) {
   const [pinned, setPinned] = useState(false)
@@ -60,12 +64,79 @@ function ShowcaseSection({
         <span className="showcase-summary">{summary}</span>
         <span className="showcase-caret" aria-hidden="true" />
       </button>
+      {/* Outside the collapsing region on purpose: a card whose resting state
+          is a row of text is a list, and this is meant to be a look at the
+          work. The collapse hides the reading matter, never the artwork. */}
+      <div className="showcase-preview">{preview}</div>
       <div className="showcase-body" id={`showcase-body-${id}`}>
         {/* The clipping wrapper. min-height:0 on this is what lets the grid
             row collapse to nothing at all. */}
         <div className="showcase-body-inner">{children}</div>
       </div>
     </section>
+  )
+}
+
+/** The resting view of each section: artwork, not description. */
+function LogoPreview({ logos }: { logos: readonly BrandLogo[] }) {
+  return (
+    <div className="preview-strip">
+      {logos.slice(0, 5).map((logo) => (
+        <AssetTile
+          key={logo.name}
+          src={logo.src}
+          label={logo.name}
+          ratio="4 / 3"
+          fit="contain"
+          ground="dark"
+          showLabel={false}
+        />
+      ))}
+    </div>
+  )
+}
+
+function PalettePreview({ palette }: { palette: readonly BrandColor[] }) {
+  return (
+    <div className="preview-bars" aria-hidden="true">
+      {palette.map((c) => {
+        const hex = normaliseHex(c.hex)
+        return (
+          <span
+            key={`${c.name}-${c.hex}`}
+            className={`preview-bar ${hex ? '' : 'is-invalid'}`}
+            style={hex ? { backgroundColor: hex } : undefined}
+          />
+        )
+      })}
+    </div>
+  )
+}
+
+function TypePreview({ fonts }: { fonts: readonly BrandFont[] }) {
+  const first = fonts[0]
+  if (!first) return null
+  return (
+    <p className="preview-type" style={first.stack ? { fontFamily: first.stack } : undefined}>
+      {first.sample ?? 'Handgloves 0123456789'}
+    </p>
+  )
+}
+
+function ApplicationPreview({ items }: { items: readonly BrandApplication[] }) {
+  return (
+    <div className="preview-strip is-wide">
+      {items.slice(0, 4).map((item) => (
+        <AssetTile
+          key={item.title}
+          src={item.src}
+          label={item.title}
+          ratio="3 / 2"
+          fit="cover"
+          showLabel={false}
+        />
+      ))}
+    </div>
   )
 }
 
@@ -85,12 +156,17 @@ function AssetTile({
   ratio,
   fit = 'cover',
   ground,
+  showLabel = true,
 }: {
   src?: string
   label: string
   ratio: string
   fit?: 'cover' | 'contain'
   ground?: 'light' | 'dark'
+  /** Off in the preview strip, where tiles are too narrow to set a word like
+   *  "WORDMARK" without breaking it mid-word — which reads as a bug, not as a
+   *  placeholder. The names are carried by the expanded grid instead. */
+  showLabel?: boolean
 }) {
   const [failed, setFailed] = useState(false)
   const missing = !src || failed
@@ -101,7 +177,7 @@ function AssetTile({
       style={{ aspectRatio: ratio }}
     >
       {missing ? (
-        <span className="asset-placeholder">{label}</span>
+        showLabel ? <span className="asset-placeholder">{label}</span> : null
       ) : (
         <img
           src={src}
@@ -303,6 +379,7 @@ export default function ProjectShowcase({ detail }: { detail: ProjectDetail }) {
               id={id}
               label={label}
               summary={count(logos.length, 'mark', 'marks')}
+              preview={<LogoPreview logos={logos} />}
             >
               <LogoSection logos={logos} />
             </ShowcaseSection>
@@ -316,6 +393,7 @@ export default function ProjectShowcase({ detail }: { detail: ProjectDetail }) {
               id={id}
               label={label}
               summary={<PaletteSummary palette={palette} />}
+              preview={<PalettePreview palette={palette} />}
             >
               <PaletteSection palette={palette} />
             </ShowcaseSection>
@@ -329,6 +407,7 @@ export default function ProjectShowcase({ detail }: { detail: ProjectDetail }) {
               id={id}
               label={label}
               summary={fonts.map((f) => f.name).join(' / ')}
+              preview={<TypePreview fonts={fonts} />}
             >
               <FontSection fonts={fonts} />
             </ShowcaseSection>
@@ -341,6 +420,7 @@ export default function ProjectShowcase({ detail }: { detail: ProjectDetail }) {
             id={id}
             label={label}
             summary={count(items.length, 'application', 'applications')}
+            preview={<ApplicationPreview items={items} />}
           >
             <ApplicationSection items={items} />
           </ShowcaseSection>

@@ -88,10 +88,16 @@
 .sun-sphere:hover{box-shadow:0 0 90px 26px rgba(235,94,40,0.42);}
 .sun-sphere:focus-visible{outline:2px solid #fff; outline-offset:6px;}
 
+ /* One project per row.
+   
+   Two columns halved the width available to everything downstream: a project
+   opened into a detail view whose showcase then had to fit its artwork into
+   the same narrow measure. A single column gives the panel its full width
+   back, which is where the expanded sections spend it. */
 .project-grid{
   display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:18px;
+  grid-template-columns:minmax(0,1fr);
+  gap:14px;
   margin-top:30px;
 }
 .project-card{
@@ -133,43 +139,6 @@
   flex-direction:column;
   gap:10px;
 }
-.project-detail-meta{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:var(--space-5);
-  margin-top:22px;
-}
-.project-detail-meta strong{
-  display:block;
-  text-transform:uppercase;
-  letter-spacing:var(--tracking-wide);
-  font-size:var(--text-eyebrow);
-  color:var(--orange);
-  margin-bottom:var(--space-2);
-}
-.project-detail-meta p{
-  margin:0;
-  color:rgba(255,255,255,0.8);
-  line-height:var(--leading-body);
-}
-.project-detail-list{
-  margin-top:22px;
-  list-style:none;
-  padding-left:var(--space-5);
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-}
-.project-detail-list li{
-  position:relative;
-  color:rgba(255,255,255,0.78);
-}
-.project-detail-list li::before{
-  content:'•';
-  position:absolute;
-  left:-20px;
-  color:var(--orange);
-}
 .project-detail-actions{
   display:flex;
   flex-wrap:wrap;
@@ -196,38 +165,6 @@
   margin-top:auto;
   font-size:var(--text-small);
   color:var(--orange);
-}
-.project-detail-gallery{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:14px;
-  margin-top:22px;
-}
-.project-preview-card{
-  padding:18px;
-  border:1px solid rgba(255,255,255,0.08);
-  background:rgba(255,255,255,0.06);
-}
-.project-preview-thumb{
-  height:120px;
-  border-radius:2px;
-  background:rgba(255,255,255,0.06);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  color:rgba(255,255,255,0.7);
-  border:1px solid rgba(255,255,255,0.12);
-  margin-bottom:14px;
-  font-size:var(--text-small);
-}
-.project-preview-card h4{
-  margin:0 0 8px;
-  font-size:var(--text-body-sm);
-}
-.project-preview-card p{
-  margin:0;
-  color:rgba(255,255,255,0.72);
-  font-size:var(--text-small);
 }
 
 /* Invisible 0×0 anchor that lives in the 3D orbit plane and tracks the planet's world position */
@@ -289,7 +226,7 @@
   width:min(50vw,640px);
   min-width:min(420px,92vw);
   height:100%;
-  padding:100px 48px 72px;
+  padding:0 48px 72px;
   overflow-y:auto;
   will-change:transform, opacity;
   /* Chamfered leading corner — the instrument-panel form, cut rather than
@@ -366,11 +303,23 @@
     border-left:1px solid rgba(255,255,255,0.3);
   }
 }
-/* Boxed rather than bare. A text-only "Close ✕" floating over a translucent
-   surface has no hit target a pointer can find without reading it; the border
-   states where the control is, and the states below say what it is doing. */
+/* The control sits in a sticky bar rather than floating absolutely in the
+   scroll area. Absolutely positioned, it scrolled away with the content — fine
+   while a duplicate "back to projects" waited at the foot of the panel, and
+   not fine once that duplicate was removed. Negative margins pull the bar out
+   through the panel's own padding so it spans the full width and pins to the
+   very top of the scrollport.
+
+   Boxed rather than bare: a text-only control floating over a translucent
+   surface gives a pointer no target to find without reading it. */
+.panel-bar{
+  position:sticky; top:0; z-index:3;
+  display:flex; justify-content:flex-end;
+  margin:0 -48px var(--space-5); padding:28px 48px 14px;
+  background:linear-gradient(to bottom, rgba(7,8,11,0.97) 62%, rgba(7,8,11,0));
+}
 .panel-close{
-  position:absolute; top:28px; right:28px; cursor:pointer;
+  cursor:pointer;
   display:inline-flex; align-items:center; gap:var(--space-2);
   padding:7px 12px;
   background-color:transparent; border:1px solid var(--line);
@@ -506,10 +455,12 @@
   /* Bottom padding clears the telemetry strip, which is fixed to the viewport
      and would otherwise sit over the last line of the panel. */
   .panel{
-    padding:80px 24px 96px;
+    padding:0 24px 96px;
     clip-path:polygon(0 0, 100% 0, 100% calc(100% - 24px), calc(100% - 24px) 100%, 0 100%);
   }
-  .panel-close{top:22px; right:20px;}
+  /* Matches the panel's narrower padding, or the bar would not reach its edges. */
+  .panel-bar{margin:0 -24px var(--space-4); padding:20px 24px 12px;}
+  .project-facts > div{grid-template-columns:1fr;} 
 }
 
 /* ===== Project showcase =====
@@ -577,9 +528,9 @@
 
 /* auto-fill, so one item and twelve both lay out correctly. */
 .showcase-grid{display:grid; gap:var(--space-3);}
-.showcase-grid.is-logos{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));}
-.showcase-grid.is-applications{grid-template-columns:repeat(auto-fill,minmax(190px,1fr));}
-.showcase-grid.is-palette{grid-template-columns:repeat(auto-fill,minmax(128px,1fr));}
+.showcase-grid.is-logos{grid-template-columns:repeat(auto-fill,minmax(210px,1fr));}
+.showcase-grid.is-applications{grid-template-columns:repeat(auto-fill,minmax(280px,1fr));}
+.showcase-grid.is-palette{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));}
 .showcase-item{display:flex; flex-direction:column; gap:6px;}
 .showcase-item figcaption{
   display:flex; flex-direction:column; gap:2px;
@@ -605,7 +556,13 @@
   font-family:var(--font-head); font-size:var(--text-micro);
   text-transform:uppercase; letter-spacing:var(--tracking-label);
   color:rgba(255,255,255,0.4);
+  /* Wrap rather than clip: these stand in for artwork, and a half-word reads
+     as a bug rather than as a placeholder. */
+  overflow-wrap:anywhere; hyphens:auto; line-height:1.25;
 }
+/* An empty preview tile is the hatch alone. It is a glance at the work, and
+   the names live in the expanded grid where there is room to set them. */
+.preview-strip .asset-tile.is-empty{background-size:auto;}
 
 .swatch{
   display:flex; flex-direction:column; gap:2px; align-items:flex-start;
@@ -632,3 +589,37 @@
 .specimen-role{font-size:var(--text-eyebrow); text-transform:uppercase; letter-spacing:var(--tracking-label); color:rgba(255,255,255,0.45);}
 .specimen-line{font-size:var(--text-lead); color:#fff; margin-top:4px; line-height:1.2;}
 
+
+
+/* ===== Showcase preview bands =====
+   The resting state of every section is artwork. These sit outside the
+   collapsing region, so opening a card adds detail rather than revealing the
+   work for the first time. */
+.showcase-preview{padding:0 14px 14px;}
+.preview-strip{
+  display:grid; gap:8px;
+  grid-template-columns:repeat(auto-fit,minmax(0,1fr));
+}
+.preview-strip.is-wide{grid-template-columns:repeat(auto-fit,minmax(0,1fr));}
+.preview-bars{display:flex; height:72px; border:1px solid var(--line);}
+/* Every colour takes an equal share of the width whatever the palette size. */
+.preview-bar{flex:1 1 0; min-width:0;}
+.preview-bar.is-invalid{background:repeating-linear-gradient(45deg,#333 0 6px,#222 6px 12px);}
+.preview-type{
+  font-size:clamp(1.25rem, 4vw, 2rem); line-height:1.15; color:#fff;
+  border-left:2px solid var(--orange); padding-left:var(--space-3);
+}
+
+/* Reference matter, set to stay out of the way of the work above it. */
+.project-facts{
+  display:flex; flex-direction:column; gap:var(--space-2);
+  margin-top:var(--space-5); padding-top:var(--space-4);
+  border-top:1px solid var(--line);
+}
+.project-facts > div{display:grid; grid-template-columns:88px 1fr; gap:var(--space-3);}
+.project-facts dt{
+  font-family:var(--font-head); font-size:var(--text-eyebrow);
+  text-transform:uppercase; letter-spacing:var(--tracking-label);
+  color:var(--orange);
+}
+.project-facts dd{font-size:var(--text-micro); color:rgba(255,255,255,0.6); line-height:1.5;}
