@@ -11,7 +11,7 @@ export const PLANETS: readonly PlanetContent[] = [
     panel: {
       eyebrow: 'Selected Work',
       title: 'Selected case studies and project previews.',
-      body: 'A client-facing showcase with four project placeholders. Each project card is clickable and behaves like a real portfolio entry.',
+      body: 'Brand guideline systems and cover work. Open a project to see the marks, palette, type and applications as they were delivered.',
       projects: [
         {
           id: 'redmur',
