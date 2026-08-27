@@ -32,10 +32,12 @@ export const PLANETS: readonly PlanetContent[] = [
               'Archivo across headlines, body and UI',
               'Merchandise, social and interface applications',
             ],
+            /* The guideline's own logo tiles: white over black, its primary
+               pairing. As with Jutech the artwork brings its own ground. */
             logos: [
-              { name: 'Logo system', src: '/projects/redmur/mark-logo.webp', ground: 'dark' },
-              { name: 'Primary lockup', src: '/projects/redmur/mark-lockup.webp', ground: 'dark' },
-              { name: 'Clear space', src: '/projects/redmur/mark-clearspace.webp', ground: 'light' },
+              { name: 'Symbol', src: '/projects/redmur/mark-symbol.webp' },
+              { name: 'Primary lockup', src: '/projects/redmur/mark-lockup.webp' },
+              { name: 'Horizontal lockup', src: '/projects/redmur/mark-wordmark.webp' },
             ],
             palette: [
               { name: 'Black', hex: '#000000', role: 'Primary' },
@@ -87,10 +89,15 @@ export const PLANETS: readonly PlanetContent[] = [
               'Host Grotesk across six weights',
               'Stationery, on-site branding and social applications',
             ],
+            /* Each mark is the guideline's own approved tile: gold accent over
+               navy, lifted straight from the Color Usage page rather than
+               composited here. The artwork carries its own ground, so the
+               tiles are set to cover — a contain fit would letterbox the
+               brand's own background inside the viewer's. */
             logos: [
-              { name: 'Symbol', src: '/projects/jutech/mark-symbol.webp', ground: 'light' },
-              { name: 'Horizontal lockup', src: '/projects/jutech/mark-lockup.webp', ground: 'light' },
-              { name: 'Approved variations', src: '/projects/jutech/mark-variations.webp', ground: 'light' },
+              { name: 'Symbol', src: '/projects/jutech/mark-symbol.webp' },
+              { name: 'Horizontal lockup', src: '/projects/jutech/mark-lockup.webp' },
+              { name: 'Wordmark', src: '/projects/jutech/mark-wordmark.webp' },
             ],
             palette: [
               { name: 'Navy Blue', hex: '#001F3F', role: 'Primary' },

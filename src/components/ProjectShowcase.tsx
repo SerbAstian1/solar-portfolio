@@ -117,8 +117,13 @@ export function ProjectCover({ cover }: { cover: { title: string; src?: string }
  *  check about a logo and the one thing a static sheet cannot show. */
 function LogoSection({ logos }: { logos: readonly BrandLogo[] }) {
   const [ground, setGround] = useState<'dark' | 'light'>('dark')
+  /* Only offered when at least one mark actually needs a ground. A project
+     supplying the guideline's own approved tiles brings its background with
+     it, and a toggle that changes nothing is worse than no toggle. */
+  const needsGround = logos.some((l) => l.ground)
   return (
     <>
+      {needsGround && (
       <div className="showcase-controls">
         <span className="showcase-hint">Ground</span>
         <div className="ground-toggle" role="group" aria-label="Preview background">
@@ -135,6 +140,7 @@ function LogoSection({ logos }: { logos: readonly BrandLogo[] }) {
           ))}
         </div>
       </div>
+      )}
       <div className="showcase-grid is-logos">
         {logos.map((logo, i) => (
           /* --i drives the reveal stagger. Set inline rather than through a
@@ -149,10 +155,14 @@ function LogoSection({ logos }: { logos: readonly BrandLogo[] }) {
               src={logo.src}
               label={logo.name}
               ratio="4 / 3"
-              // Never crop a mark: a logo tile that fills its box by cropping
-              // is showing a different logo.
-              fit="contain"
-              ground={ground}
+              /* The mark arrives on its own approved ground — the guideline's
+                 own tile — so the artwork fills the box. Contain would frame
+                 the brand's background inside the viewer's chosen one and show
+                 two grounds at once. Where a project supplies a bare mark with
+                 no ground of its own, `ground` is set in the data and the tile
+                 falls back to containing it. */
+              fit={logo.ground ? 'contain' : 'cover'}
+              ground={logo.ground ? ground : undefined}
             />
             <figcaption>{logo.name}</figcaption>
           </figure>
