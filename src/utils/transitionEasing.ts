@@ -38,7 +38,7 @@ export const TOTAL_OPEN =
   TIMINGS.HIGHLIGHT + TIMINGS.APPROACH + TIMINGS.REPOSITION + TIMINGS.PANEL + TIMINGS.SETTLE
 
 /**
- * Closing runs at 0.62 of the opening duration.
+ * Closing runs at 0.45 of the opening duration.
  *
  * Exits should outpace entrances: opening is a reveal the visitor is waiting to
  * watch, closing is a decision they have already made and now want out of the
@@ -47,7 +47,7 @@ export const TOTAL_OPEN =
  * closing meant a fifth of a second of feedback followed by nearly a second
  * and a half of locked input while the camera flew home.
  */
-export const CLOSE_SCALE = 0.62
+export const CLOSE_SCALE = 0.45
 export const TOTAL_CLOSE = Math.round(TOTAL_OPEN * CLOSE_SCALE)
 
 /** Normalized phase boundaries (0–1) for the opening sequence. */

@@ -23,6 +23,17 @@ export const DURATION = {
   content: 0.2,
   /** Scrims and overlays. */
   scrim: 0.2,
+  /**
+   * Leaving, for the surfaces that have a separate exit.
+   *
+   * An entrance and an exit were sharing one duration, which reads as a lag on
+   * the way out: arriving is a reveal the visitor waits to watch, while
+   * leaving is a decision already made and now in the way. These are a little
+   * over half the entrance, which is enough to still be motion rather than a
+   * cut.
+   */
+  panelExit: 0.15,
+  scrimExit: 0.12,
   /** The panel itself entering. It now overlaps the camera's reposition
    *  rather than following it, so this is the tail of the sequence and not a
    *  further wait added onto the end of it. */

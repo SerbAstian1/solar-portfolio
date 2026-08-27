@@ -50,7 +50,7 @@ export default function PanelOverlay({
             className="panel-scrim"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            exit={{ opacity: 0, transition: { duration: DURATION.scrimExit, ease: 'easeOut' } }}
             transition={{ duration: DURATION.scrim, ease: EASE_OUT_EXPO }}
             onClick={onClose}
           />
@@ -63,7 +63,16 @@ export default function PanelOverlay({
             aria-labelledby="panel-title"
             initial={{ opacity: 0, y: 24, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.98 }}
+            /* The exit carries its own, shorter transition. ease-out-expo
+               spends most of a short duration almost stationary, which on the
+               way out reads as the panel hesitating; a plain ease-out leaves
+               immediately. */
+            exit={{
+              opacity: 0,
+              y: 12,
+              scale: 0.985,
+              transition: { duration: DURATION.panelExit, ease: 'easeOut' },
+            }}
             transition={{ duration: DURATION.panel, ease: EASE_OUT_EXPO }}
           >
             {/* One control, two jobs, and it sticks to the top of the scroll
