@@ -154,7 +154,10 @@ function LogoSection({ logos }: { logos: readonly BrandLogo[] }) {
             <AssetTile
               src={logo.src}
               label={logo.name}
-              ratio="4 / 3"
+              /* 3:2 matches the artwork exactly — the guideline tiles are
+                 padded to it with their own ground — so nothing is cropped
+                 even at the full width of the panel. */
+              ratio="3 / 2"
               /* The mark arrives on its own approved ground — the guideline's
                  own tile — so the artwork fills the box. Contain would frame
                  the brand's background inside the viewer's chosen one and show

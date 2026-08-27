@@ -498,11 +498,14 @@
 }
 .ground-option.is-active{background-color:var(--orange); color:var(--black);}
 
-/* auto-fill, so one item and twelve both lay out correctly. */
-.showcase-grid{display:grid; gap:var(--space-3);}
-.showcase-grid.is-logos{grid-template-columns:repeat(auto-fill,minmax(210px,1fr));}
-.showcase-grid.is-applications{grid-template-columns:repeat(auto-fill,minmax(280px,1fr));}
-.showcase-grid.is-palette{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));}
+/* One item per row, at every width.
+   
+   These were auto-fill grids that packed two or three across a 544px panel.
+   That is efficient and it is the wrong trade here: the panel is a place to
+   look at a mark, and a mark shown at 260px beside another mark is a
+   thumbnail. A single column gives each piece the full measure of the panel,
+   which is the widest it can be shown without the panel itself growing. */
+.showcase-grid{display:grid; gap:var(--space-3); grid-template-columns:1fr;}
 .showcase-item{display:flex; flex-direction:column; gap:6px;}
 .showcase-item figcaption{
   display:flex; flex-direction:column; gap:2px;
@@ -545,21 +548,30 @@
   overflow-wrap:anywhere; line-height:1.25;
 }
 
+/* A full-width bar reads across, not down: the name leads at the left and the
+   value lands at the right, with the space between them belonging to the
+   colour. Stacking them, as a narrow tile did, would leave most of the bar
+   empty and the hex floating in the middle of it. */
 .swatch{
-  display:flex; flex-direction:column; gap:2px; align-items:flex-start;
-  position:relative; min-height:96px; padding:10px;
+  display:grid; grid-template-columns:1fr auto; align-items:center;
+  column-gap:var(--space-3); row-gap:2px;
+  position:relative; min-height:76px; padding:14px 16px;
   border:1px solid var(--line); cursor:pointer;
   font-family:var(--font-head); text-align:left;
   transition:box-shadow var(--dur-hover) ease-out;
 }
+.swatch-name{grid-column:1; grid-row:1;}
+.swatch-role{grid-column:1; grid-row:2;}
+/* Spans both rows so it centres against the name and role together. */
+.swatch-hex{grid-column:2; grid-row:1 / span 2; justify-self:end;}
 /* An inset ring rather than a lift: outside this tile nothing moves. */
 .swatch:hover, .swatch:focus-visible{box-shadow:inset 0 0 0 2px currentColor;}
 .swatch-name{font-size:var(--text-micro); font-weight:600;}
 .swatch-role{font-size:var(--text-eyebrow); opacity:0.75;}
-.swatch-hex{margin-top:auto; font-size:var(--text-eyebrow); font-variant-numeric:tabular-nums; opacity:0.9;}
+.swatch-hex{font-size:var(--text-micro); font-variant-numeric:tabular-nums; opacity:0.9;}
 /* Drawn over the swatch, so revealing it costs no height. */
 .swatch-action{
-  position:absolute; right:8px; bottom:8px;
+  position:absolute; right:16px; bottom:6px;
   font-size:var(--text-eyebrow); text-transform:uppercase;
   letter-spacing:var(--tracking-label);
   opacity:0; transition:opacity var(--dur-hover) ease-out;
