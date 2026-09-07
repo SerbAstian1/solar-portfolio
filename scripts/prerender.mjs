@@ -164,6 +164,25 @@ for (const section of sections) {
 }
 
 const urls = ['/', ...sections.map((s) => `/${s.id}`)]
+/* A static host has no router: it looks for a file at the requested path and,
+   finding none, serves whatever its own convention says. Netlify, GitHub Pages
+   and Cloudflare Pages all look for 404.html, so emitting one is what makes an
+   unknown URL arrive at this site's own page rather than the host's.
+
+   It is the same document as the overview — the app reads the path at runtime,
+   sees that it names no section and renders the 404 itself — with one
+   difference: robots are told not to index it. Without that, every rotted link
+   pointing at the site becomes an indexable page whose content is the word
+   "404".
+
+   The status code is still the host's to send. This makes the *page* right;
+   configuring the host to serve it as a genuine 404 rather than a 200 is a
+   deploy setting, noted in the README. */
+writeFileSync(
+  join(DIST, '404.html'),
+  render(null).replace('<title>', '<meta name="robots" content="noindex"><title>'),
+)
+
 writeFileSync(
   join(DIST, 'sitemap.xml'),
   `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls
@@ -176,7 +195,7 @@ writeFileSync(
   `User-agent: *\nAllow: /\n\nSitemap: ${origin}/sitemap.xml\n`,
 )
 
-console.log(`  prerendered ${urls.length} routes + sitemap.xml + robots.txt`)
+console.log(`  prerendered ${urls.length} routes + 404.html + sitemap.xml + robots.txt`)
 for (const section of sections) {
   const seo = entries[section.id]
   console.log(

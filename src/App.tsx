@@ -1,5 +1,7 @@
 import { Suspense, lazy } from 'react'
 import DitherCanvas from './components/DitherCanvas'
+import ErrorBoundary from './components/ErrorBoundary'
+import ErrorPage from './components/ErrorPage'
 import TelemetryStrip from './components/TelemetryStrip'
 import MobileNav from './components/MobileNav'
 import PanelOverlay from './components/PanelOverlay'
@@ -24,8 +26,30 @@ export default function App() {
   /* Routing is owned here, once. Both viewport branches and the fallback nav
      read the same section, so a link, a planet click and the back button
      cannot disagree about where the visitor is. */
-  const { sectionId, navigate } = useRouteSection()
+  const { sectionId, notFound, navigate } = useRouteSection()
   const section = PLANETS.find((p) => p.id === sectionId) ?? null
+
+  /* A path that names nothing renders the 404 and stops there. The scene is
+     not mounted for it: a wrong URL should not pull a megabyte of models down
+     to decorate the answer, and the dithered starfield alone still makes the
+     page look like this site. */
+  if (notFound) {
+    return (
+      <>
+        <a className="skip-link" href="#main-content">
+          Skip to content
+        </a>
+        <DitherCanvas />
+        <ErrorPage
+          code="404"
+          title="There is nothing at this address."
+          message="The link may be mistyped, or it may have pointed at something that has since moved. Neither is your problem to solve."
+          action={{ label: 'Back to the system', onClick: () => navigate(null) }}
+          showSections
+        />
+      </>
+    )
+  }
 
   return (
     <>
@@ -71,13 +95,35 @@ export default function App() {
       </nav>
 
       {hasScene ? (
-        <Suspense fallback={<div className="scene-loading" aria-hidden="true" />}>
-          <SolarSystem
-            sectionId={sectionId}
-            navigate={navigate}
-            mode={mode === 'full' ? 'full' : 'compact'}
-          />
-        </Suspense>
+        /* If the scene throws — an unusual GPU, a model that will not parse, a
+           chunk that never arrives — the site does not need to apologise. It
+           already carries a complete WebGL-free way to navigate itself for
+           small screens, and that path is what a desktop visitor gets instead.
+           Same components, same URLs, no 3D. The notice explains the missing
+           scene so the plainer page does not read as the whole site. */
+        <ErrorBoundary
+          fallback={
+            <div className="mobile-only">
+              <p className="scene-notice" role="status">
+                The interactive view could not load here, so this is the plain
+                one. Everything is still reachable.{' '}
+                <button type="button" onClick={() => window.location.reload()}>
+                  Try again
+                </button>
+              </p>
+              <MobileNav onSelect={navigate} />
+              <PanelOverlay planet={section} onClose={() => navigate(null)} />
+            </div>
+          }
+        >
+          <Suspense fallback={<div className="scene-loading" aria-hidden="true" />}>
+            <SolarSystem
+              sectionId={sectionId}
+              navigate={navigate}
+              mode={mode === 'full' ? 'full' : 'compact'}
+            />
+          </Suspense>
+        </ErrorBoundary>
       ) : (
         <div className="mobile-only">
           <MobileNav onSelect={navigate} />

@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { HOME_PATH, isUnknownPath, pathForSection, sectionForPath } from './routes'
+import { isUnknownPath, pathForSection, sectionForPath } from './routes'
 
 export interface RouteSection {
   /** Currently routed section id, or null at the overview. */
   sectionId: string | null
+  /** True when the path names no section that exists. */
+  notFound: boolean
   /** Navigate, pushing a history entry. */
   navigate: (id: string | null) => void
   /** Navigate without adding history — used to correct a bad URL on load. */
@@ -24,6 +26,9 @@ export function useRouteSection(): RouteSection {
   const [sectionId, setSectionId] = useState<string | null>(() =>
     typeof window === 'undefined' ? null : sectionForPath(window.location.pathname),
   )
+  const [notFound, setNotFound] = useState(() =>
+    typeof window === 'undefined' ? false : isUnknownPath(window.location.pathname),
+  )
 
   // Avoids pushing a history entry for a navigation that popstate just told
   // us about, which would otherwise trap the back button.
@@ -33,20 +38,21 @@ export function useRouteSection(): RouteSection {
     const onPopState = () => {
       suppressPush.current = true
       setSectionId(sectionForPath(window.location.pathname))
+      setNotFound(isUnknownPath(window.location.pathname))
       suppressPush.current = false
     }
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
   }, [])
 
-  // A deep link to a section that does not exist should not silently render
-  // the overview at a lying URL.
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    if (isUnknownPath(window.location.pathname)) {
-      window.history.replaceState(null, '', HOME_PATH)
-    }
-  }, [])
+  /* A bad path used to be rewritten to "/" on mount, which swapped one
+     dishonesty for another: the URL stopped lying, and the page then showed
+     the overview as though nothing had happened. A visitor who mistyped a
+     link, or followed one that had rotted, was told nothing at all.
+
+     The path is left exactly as it arrived and reported as not found. It stays
+     shareable and reportable, the back button still goes where it should, and
+     the first correct navigation clears the state. */
 
   const go = useCallback((id: string | null, mode: 'push' | 'replace') => {
     const path = pathForSection(id)
@@ -55,10 +61,13 @@ export function useRouteSection(): RouteSection {
       else window.history.replaceState(null, '', path)
     }
     setSectionId(id)
+    // Any deliberate navigation lands somewhere real by construction.
+    setNotFound(false)
   }, [])
 
   return {
     sectionId,
+    notFound,
     navigate: useCallback((id: string | null) => go(id, 'push'), [go]),
     replace: useCallback((id: string | null) => go(id, 'replace'), [go]),
   }

@@ -60,3 +60,46 @@ describe('routes and orbital bodies agree', () => {
     }
   })
 })
+
+/**
+ * Unknown paths. These used to be rewritten to "/" on mount, which meant a
+ * mistyped or rotted link silently showed the overview — the visitor was never
+ * told the address was wrong. They are now reported so the 404 can render, and
+ * the URL is left exactly as it arrived.
+ */
+describe('unknown paths', () => {
+  it('knows every real section is not unknown', () => {
+    for (const path of SECTION_PATHS) {
+      expect(isUnknownPath(path)).toBe(false)
+    }
+  })
+
+  it('treats the overview as known, not as a 404', () => {
+    expect(isUnknownPath('/')).toBe(false)
+    expect(isUnknownPath('')).toBe(false)
+    // A trailing slash is the same place, not a different one.
+    expect(isUnknownPath('//')).toBe(false)
+  })
+
+  it('flags a path that names nothing', () => {
+    for (const path of ['/nope', '/wrok', '/work-2', '/about/team', '/WORK ']) {
+      expect(isUnknownPath(path)).toBe(true)
+    }
+  })
+
+  it('is case sensitive, matching the URLs actually published', () => {
+    // The sitemap and every internal link emit lowercase ids. Accepting
+    // "/Work" would serve one page at two addresses and split its ranking.
+    expect(isUnknownPath('/Work')).toBe(true)
+    expect(isUnknownPath('/work')).toBe(false)
+  })
+
+  it('never resolves an unknown path to a section', () => {
+    // The two must agree: anything flagged unknown has to have no section, or
+    // the app would render a section at a URL it has called a 404.
+    for (const path of ['/nope', '/x', '/work/extra']) {
+      expect(isUnknownPath(path)).toBe(true)
+      expect(sectionForPath(path)).toBeNull()
+    }
+  })
+})

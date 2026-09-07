@@ -628,3 +628,64 @@
 }
 /* Two outbound links can sit side by side, and wrap rather than overflow. */
 .project-detail-actions{display:flex; flex-wrap:wrap; gap:var(--space-3);}
+
+/* ===== Error pages =====
+   Shares the site's language without depending on the part of it that may
+   have just failed: no 3D scene, only the dithered starfield already in the
+   entry bundle. Centred rather than left-aligned, because there is no
+   sustained reading here to give a spine to — one code, one line, one way
+   out. */
+.error-page{
+  position:relative; z-index:1;
+  min-height:100dvh;
+  display:grid; place-items:center;
+  padding:var(--space-6) clamp(20px,5vw,64px) 96px;
+}
+.error-inner{
+  width:min(560px,100%);
+  display:flex; flex-direction:column; align-items:flex-start; gap:var(--space-3);
+}
+/* Large, and set in the accent so the page is legible as an error at a glance
+   from across the room, before any of the words are read. */
+.error-code{
+  font-family:var(--font-head); font-weight:700;
+  font-size:clamp(3.5rem,12vw,6rem); line-height:0.9;
+  letter-spacing:-0.03em; color:var(--orange);
+}
+.error-title{
+  font-family:var(--font-head); font-weight:700;
+  font-size:var(--text-heading); line-height:1.1; letter-spacing:-0.02em;
+  color:var(--white); margin:0;
+}
+.error-message{
+  color:rgba(255,255,255,0.72); line-height:var(--leading-body);
+  max-width:46ch; margin:0;
+}
+.error-actions{margin-top:var(--space-3);}
+
+.error-sections{
+  margin-top:var(--space-5); padding-top:var(--space-4);
+  border-top:1px solid var(--line); width:100%;
+}
+.error-sections-label{
+  font-family:var(--font-head); font-size:var(--text-eyebrow);
+  text-transform:uppercase; letter-spacing:var(--tracking-label);
+  color:var(--orange); margin-bottom:var(--space-3);
+}
+.error-sections ul{
+  list-style:none; display:flex; flex-wrap:wrap; gap:var(--space-2);
+}
+
+/* Shown above the plain navigation when the 3D scene failed but the rest of
+   the site is fine. A notice, not an error page — the site still works. */
+.scene-notice{
+  display:flex; flex-wrap:wrap; align-items:baseline; gap:var(--space-2);
+  margin:0 0 var(--space-4); padding:12px 16px;
+  border:1px solid var(--line); border-left:2px solid var(--orange);
+  font-size:var(--text-micro); color:rgba(255,255,255,0.72);
+  line-height:var(--leading-body);
+}
+.scene-notice button{
+  background:none; border:none; padding:0; cursor:pointer;
+  font:inherit; color:var(--orange); text-decoration:underline;
+}

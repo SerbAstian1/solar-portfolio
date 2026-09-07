@@ -117,6 +117,38 @@ Enforced by `npm run size`, which exits non-zero on a breach.
 | CSS | 20 KB | 3.1 KB gzip |
 | 3D assets | 1100 KB | 1042 KB |
 
+## Error states
+
+Three of them, all reachable without a server.
+
+**404.** A path naming no section is left exactly as it arrived and reported as
+not found, rather than quietly rewritten to `/`. The page offers the five
+sections as links, so a rotted URL becomes navigation instead of a dead end.
+
+**A scene that will not run** — an unusual GPU, a model that will not parse, a
+chunk that never downloads — does not produce an apology. The site already
+carries a complete WebGL-free way to navigate itself for small screens, and an
+error boundary drops desktop visitors into that instead, with a notice
+explaining the missing view.
+
+**Anything else thrown during render** hits a root boundary and gets a page
+with a reload. Without one React unmounts the whole tree and leaves an empty
+black document — no message, no way back, nothing to report.
+
+A chunk that failed to download is detected separately and told the truth: the
+connection dropped or a new version shipped, and reloading fixes it. It is by
+far the likeliest production failure here and it is not the visitor's fault.
+
+### One deploy setting
+
+`npm run build` emits `dist/404.html`, which Netlify, GitHub Pages and
+Cloudflare Pages all serve for unknown paths by convention. It carries
+`noindex`, so rotted links do not become indexable pages.
+
+The **status code is still the host's to send**. Some hosts serve `404.html`
+with a `200`, which looks right to a visitor and tells a crawler the page
+exists. If the host has a setting for this, set it to return a real `404`.
+
 ## Known gaps
 
 - Contact form has no submit handler and no `name` attributes — it needs a real
