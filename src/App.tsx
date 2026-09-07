@@ -40,6 +40,10 @@ export default function App() {
           Skip to content
         </a>
         <DitherCanvas />
+        {/* The rail runs here too. It is the site's furniture rather than the
+            scene's — it carries the clock, and it is the one thing on a 404
+            that is still working normally. */}
+        <TelemetryStrip />
         <ErrorPage
           code="404"
           title="There is nothing at this address."
