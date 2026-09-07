@@ -86,11 +86,7 @@ export default function PanelOverlay({
                 aria-label={activeProject ? 'Back to projects' : 'Close panel'}
                 onClick={activeProject ? () => setActiveProjectId(null) : onClose}
               >
-                {/* Wrapped, not bare. The press ripple is positioned, so it
-                    paints above any text that is not itself in a positioned
-                    box; the stylesheet lifts a control's element children over
-                    it, and a bare text node has nothing to lift. */}
-                <span>{activeProject ? '← Back' : 'Close ✕'}</span>
+                {activeProject ? '← Back' : 'Close ✕'}
               </button>
             </div>
 

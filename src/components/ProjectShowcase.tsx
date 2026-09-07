@@ -135,9 +135,7 @@ function LogoSection({ logos }: { logos: readonly BrandLogo[] }) {
               aria-pressed={ground === g}
               onClick={() => setGround(g)}
             >
-              {/* Wrapped so the press ripple paints beneath it — see the note
-                  on the close control. */}
-              <span>{g}</span>
+              {g}
             </button>
           ))}
         </div>

@@ -74,8 +74,8 @@
      keep in step rather than one. The easing curve is shared by both, so it
      is defined here and asserted equal to its JS counterpart in the tests. */
   --dur-hover:120ms;
-  /* Mirrored by RIPPLE_MS in useRipple.ts; the tokens test holds them equal. */
-  --dur-ripple:520ms;
+  /* Mirrored by RING_MS in useRipple.ts; the tokens test holds them equal. */
+  --dur-ripple-ring:460ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -380,48 +380,40 @@ a{color:inherit; text-decoration:none;}
 }
 /* cursor:end */
 
-/* ===== Press ripple =====
-   Spawned at the pointer by useRipple and removed when it finishes. It scales
-   a circle and fades it, both compositor properties, so a press never costs a
-   layout — which matters because these fire on controls sitting over a live
-   WebGL scene.
+/* ===== Press echo =====
+   Repeated strokes of the control's own outline, travelling outward and
+   fading. Built by useRipple on pointerdown and removed when the last ring
+   finishes.
 
-   The host's own clip-path does the containing: on the chamfered controls the
-   ripple is cut by the same angled corner as the border, so it stays inside
-   the shape without needing overflow rules of its own. */
-.ripple{
-  position:absolute; z-index:0;
-  border-radius:50%; pointer-events:none;
-  /* Positioned by its centre: the hook sets left/top to the press point. */
-  transform:translate(-50%,-50%) scale(0);
-  background:currentColor; opacity:0.28;
-  animation:ripple-out var(--dur-ripple) cubic-bezier(0.22,1,0.36,1) forwards;
+   The overlay is a child of <body>, never of the control. Every one of these
+   controls carries a clip-path for its chamfer, and a clip-path clips
+   descendants — so an echo drawn inside the button would be confined to the
+   button, which is the one thing it must not be.
+
+   Only opacity animates. The rings are pre-drawn at their final offsets and
+   take their turn in sequence, which reads as a wave going out while costing
+   nothing but compositing — worth having on controls that sit over a live
+   WebGL scene. */
+.ripple-echo{
+  position:fixed; z-index:200;
+  pointer-events:none;
 }
-@keyframes ripple-out{
-  to{transform:translate(-50%,-50%) scale(1); opacity:0;}
+.ripple-echo svg{display:block; overflow:visible;}
+.ripple-ring{
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1;
+  opacity:0;
+  animation:ripple-ring var(--dur-ripple-ring) ease-out forwards;
 }
-/* Ripple hosts need a containing block for it, and their own content needs to
-   sit above it — otherwise a label would be washed out by its own press. */
-.btn-outline, .panel-close, .project-card,
-.price-tier, .mobile-tile, .ground-option{
-  position:relative;
+/* Up quickly to a low ceiling, then away. A stroke that faded in and out
+   symmetrically would read as a pulse sitting still; arriving fast and
+   leaving slowly is what gives it a direction. */
+@keyframes ripple-ring{
+  0%{opacity:0;}
+  22%{opacity:0.55;}
+  100%{opacity:0;}
 }
-/* :not(.ripple) is load-bearing. The ripple is itself a direct child of the
-   control, so without the exclusion this rule caught it too and made it
-   position:relative — putting a 350px circle into the flow of a 40px button
-   and lifting it above the label it is supposed to sit beneath. */
-.btn-outline > *:not(.ripple),
-.panel-close > *:not(.ripple),
-.project-card > *:not(.ripple),
-.price-tier > *:not(.ripple),
-.mobile-tile > *:not(.ripple),
-.swatch > *:not(.ripple),
-.ground-option > *:not(.ripple){
-  position:relative; z-index:1;
-}
-/* Nothing is spawned under this preference — the hook checks it at press time
-   — but the rule stays as a second guard in case one is ever rendered by
-   another path. */
 @media(prefers-reduced-motion: reduce){
-  .ripple{display:none;}
+  .ripple-echo{display:none;}
 }

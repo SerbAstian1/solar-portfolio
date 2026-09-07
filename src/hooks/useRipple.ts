@@ -3,9 +3,9 @@ import { useEffect } from 'react'
 /**
  * Everything that should acknowledge a press.
  *
- * Kept as one list rather than a prop on each component because the ripple is
- * a property of the interface, not of any one button — a new control should
- * get it by being a control, without anyone remembering to opt in.
+ * One list rather than a prop on each component: the echo is a property of the
+ * interface, not of any one control, so a new control gets it by being a
+ * control instead of by remembering to opt in.
  */
 const RIPPLE_TARGETS = [
   '.btn-outline',
@@ -17,54 +17,98 @@ const RIPPLE_TARGETS = [
   '.swatch',
 ].join(',')
 
-/** How long the ripple takes to travel and fade. Mirrored in the stylesheet. */
-export const RIPPLE_MS = 520
+/** How many outlines go out on a press. */
+export const RING_COUNT = 3
+/** Distance between one outline and the next, in pixels. */
+export const RING_GAP = 9
+/** How long a single outline takes to fade. Mirrored in the stylesheet. */
+export const RING_MS = 460
+/** Delay between one outline starting and the next. Mirrored in the stylesheet. */
+export const RING_STAGGER = 90
+/** Room the overlay needs around the control for the outermost ring. */
+export const RING_MARGIN = RING_COUNT * RING_GAP + 2
+/** When the last ring has finished and the overlay can go. */
+export const RIPPLE_TOTAL_MS = RING_MS + RING_STAGGER * (RING_COUNT - 1)
 
 /**
- * The radius a ripple must reach to cover the whole element from where it
- * started.
+ * The control's own silhouette, offset outward by `d`.
  *
- * It is the distance to the furthest corner, not half the width: a press near
- * one edge is further from the opposite corner than from the centre, and a
- * circle sized for the centre would stop short and read as a bubble rather
- * than as the surface responding.
+ * Written as an SVG polygon rather than a bordered box because the controls
+ * are chamfered, and a CSS border under a clip-path loses the diagonal — the
+ * clip removes the corner and takes that stretch of border with it, leaving
+ * the outline visibly broken exactly where it should be most machined. A
+ * stroked polygon has no such problem: the diagonal is simply one more edge.
+ *
+ * The offset expands the box by `d` on every side while leaving the cut the
+ * same length, which is what a true parallel offset of a 45-degree chamfer
+ * does — the diagonal moves outward perpendicular to itself and does not grow.
+ * Scaling would have been easier and wrong: a 227x40 button scaled to cover
+ * the same distance vertically would travel four times as far horizontally,
+ * and the echo would read as stretching sideways rather than radiating.
  */
-export function rippleRadius(
+export function chamferPoints(
   width: number,
   height: number,
-  x: number,
-  y: number,
-): number {
-  const dx = Math.max(x, width - x)
-  const dy = Math.max(y, height - y)
-  return Math.hypot(dx, dy)
+  cut: number,
+  d: number,
+): string {
+  const x = RING_MARGIN - d
+  const y = RING_MARGIN - d
+  const w = width + d * 2
+  const h = height + d * 2
+  // A cut longer than the box it is cut from would fold the shape inside out.
+  const c = Math.max(0, Math.min(cut, Math.min(w, h)))
+  if (c === 0) {
+    return `${x},${y} ${x + w},${y} ${x + w},${y + h} ${x},${y + h}`
+  }
+  return [
+    `${x},${y}`,
+    `${x + w},${y}`,
+    `${x + w},${y + h - c}`,
+    `${x + w - c},${y + h}`,
+    `${x},${y + h}`,
+  ].join(' ')
 }
 
 /** Honoured at press time rather than subscribed to, so a visitor changing the
  *  setting mid-session is respected without re-binding anything. */
 function prefersReducedMotion(): boolean {
-  return typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  return (
+    typeof window !== 'undefined' &&
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  )
+}
+
+/** The chamfer size the stylesheet gave this control, or 0 where it has none. */
+function readCut(el: Element): number {
+  const raw = getComputedStyle(el).getPropertyValue('--cut').trim()
+  const n = Number.parseFloat(raw)
+  return Number.isFinite(n) ? n : 0
 }
 
 /**
- * Adds a press ripple to every control on the page, from one listener.
+ * Echoes a control's outline outward on press.
  *
- * Bound on `pointerdown`, not click. A control that acknowledges on release
+ * The overlay is appended to `document.body`, not to the control. It has to
+ * be: every one of these controls carries a `clip-path` for its chamfer, and a
+ * clip-path clips descendants, so anything drawn inside the button is confined
+ * to the button. An echo that must travel *outside* the edges cannot be a
+ * child of the thing it is escaping.
+ *
+ * Bound on pointerdown, not click. A control that acknowledges on release
  * feels dead even when the total elapsed time is identical, because what is
- * being designed here is perceived latency rather than duration — the response
- * has to be inside the same frame as the press.
+ * being designed here is perceived latency rather than duration.
  *
  * Delegated at the document rather than attached per element: controls come
- * and go as panels open, projects expand and sections render, and a per-node
- * listener would need adding and removing on each of those. One listener has
- * no lifecycle to get wrong.
+ * and go as panels open and sections render, and a per-node listener would
+ * need adding and removing on each of those.
  */
 export function useRipple(): void {
   useEffect(() => {
     const onPointerDown = (event: PointerEvent) => {
       if (prefersReducedMotion()) return
       // Secondary and middle presses open menus and tabs; neither is the kind
-      // of activation this is acknowledging.
+      // of activation this acknowledges.
       if (event.button !== 0) return
 
       const target = (event.target as Element | null)?.closest?.(RIPPLE_TARGETS)
@@ -73,34 +117,52 @@ export function useRipple(): void {
 
       const rect = target.getBoundingClientRect()
       if (rect.width === 0 || rect.height === 0) return
-      const x = event.clientX - rect.left
-      const y = event.clientY - rect.top
-      const radius = rippleRadius(rect.width, rect.height, x, y)
 
-      const ripple = document.createElement('span')
-      ripple.className = 'ripple'
-      // aria-hidden and pointer-events:none in CSS: this is decoration, and it
-      // must never sit between the pointer and the control it is decorating.
-      ripple.setAttribute('aria-hidden', 'true')
-      ripple.style.left = `${x}px`
-      ripple.style.top = `${y}px`
-      ripple.style.width = `${radius * 2}px`
-      ripple.style.height = `${radius * 2}px`
+      const cut = readCut(target)
+      const boxW = rect.width + RING_MARGIN * 2
+      const boxH = rect.height + RING_MARGIN * 2
 
-      /* Cleaned up on whichever comes first: the animation ending, or a
-         timeout. animationend does not fire if the element is hidden or its
-         animation is dropped, and a ripple that is never removed leaks a node
-         onto every press for the life of the page. */
+      const host = document.createElement('div')
+      host.className = 'ripple-echo'
+      host.setAttribute('aria-hidden', 'true')
+      host.style.left = `${rect.left - RING_MARGIN}px`
+      host.style.top = `${rect.top - RING_MARGIN}px`
+      host.style.width = `${boxW}px`
+      host.style.height = `${boxH}px`
+      /* Takes the control's own text colour, so the echo is white on a resting
+         button and brand orange on a hovered one without being told which. */
+      host.style.color = getComputedStyle(target).color
+
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+      svg.setAttribute('viewBox', `0 0 ${boxW} ${boxH}`)
+      svg.setAttribute('width', `${boxW}`)
+      svg.setAttribute('height', `${boxH}`)
+
+      for (let i = 0; i < RING_COUNT; i += 1) {
+        const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon')
+        poly.setAttribute('points', chamferPoints(rect.width, rect.height, cut, (i + 1) * RING_GAP))
+        poly.setAttribute('class', 'ripple-ring')
+        // Each outline waits its turn, so three static shapes read as one
+        // wave travelling outward rather than as a box appearing three times.
+        poly.style.animationDelay = `${i * RING_STAGGER}ms`
+        svg.appendChild(poly)
+      }
+      host.appendChild(svg)
+
+      /* Removed on whichever comes first: the last ring ending, or a timeout.
+         animationend does not fire if the element is hidden or its animation
+         is dropped, and an overlay that is never removed leaks a node onto
+         every press for the life of the page. */
       let done = false
       const remove = () => {
         if (done) return
         done = true
-        ripple.remove()
+        host.remove()
       }
-      ripple.addEventListener('animationend', remove, { once: true })
-      window.setTimeout(remove, RIPPLE_MS + 120)
+      svg.lastElementChild?.addEventListener('animationend', remove, { once: true })
+      window.setTimeout(remove, RIPPLE_TOTAL_MS + 150)
 
-      target.appendChild(ripple)
+      document.body.appendChild(host)
     }
 
     document.addEventListener('pointerdown', onPointerDown)
