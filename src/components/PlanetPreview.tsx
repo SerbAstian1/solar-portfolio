@@ -1,7 +1,7 @@
 import { forwardRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { PlanetContent } from '../data/types'
-import { DURATION, EASE_OUT_EXPO } from '../motion'
+import { SPRING } from '../motion'
 
 interface PlanetPreviewProps {
   planet: PlanetContent | null
@@ -23,10 +23,14 @@ const PlanetPreview = forwardRef<HTMLDivElement, PlanetPreviewProps>(function Pl
           {planet && (
             <motion.div
               className="planet-preview"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              transition={{ duration: DURATION.hint, ease: EASE_OUT_EXPO }}
+              /* Grows from the planet it belongs to rather than from its own
+                 middle, so the card reads as coming out of the body under the
+                 pointer. */
+              style={{ transformOrigin: '50% 100%' }}
+              initial={{ opacity: 0, y: 6, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 4, scale: 0.98 }}
+              transition={SPRING.hint}
             >
               <div className="cat">{planet.cat}</div>
               <h5>{planet.label}</h5>

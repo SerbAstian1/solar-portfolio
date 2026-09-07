@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { PlanetContent, Project } from '../data/types'
 import { useFocusTrap } from '../hooks/useFocusTrap'
-import { DURATION, EASE_OUT_EXPO } from '../motion'
+import { DURATION, EASE_OUT_EXPO, SPRING } from '../motion'
 import OutlineButton, { OutlineLink } from './OutlineButton'
 import ProjectShowcase, { ProjectCover } from './ProjectShowcase'
 
@@ -50,8 +50,8 @@ export default function PanelOverlay({
             className="panel-scrim"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0, transition: { duration: DURATION.scrimExit, ease: 'easeOut' } }}
-            transition={{ duration: DURATION.scrim, ease: EASE_OUT_EXPO }}
+            exit={{ opacity: 0, transition: SPRING.scrimExit }}
+            transition={SPRING.scrim}
             onClick={onClose}
           />
           {/* Step 4 — glass panel fades up and scales into view */}
@@ -61,19 +61,19 @@ export default function PanelOverlay({
             role="dialog"
             aria-modal="true"
             aria-labelledby="panel-title"
-            initial={{ opacity: 0, y: 24, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
+            initial={{ opacity: 0, x: 28, scale: 0.985 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
             /* The exit carries its own, shorter transition. ease-out-expo
                spends most of a short duration almost stationary, which on the
                way out reads as the panel hesitating; a plain ease-out leaves
                immediately. */
-            exit={{
-              opacity: 0,
-              y: 12,
-              scale: 0.985,
-              transition: { duration: DURATION.panelExit, ease: 'easeOut' },
-            }}
-            transition={{ duration: DURATION.panel, ease: EASE_OUT_EXPO }}
+            /* Enters and leaves along the same path: in from the right edge it
+               is docked to, back out the same way. The origin is that edge
+               rather than the panel's centre, so it grows from where it comes
+               from instead of inflating in place. */
+            style={{ transformOrigin: '100% 50%' }}
+            exit={{ opacity: 0, x: 24, scale: 0.99, transition: SPRING.panelExit }}
+            transition={SPRING.panel}
           >
             {/* One control, two jobs, and it sticks to the top of the scroll
                 area rather than scrolling away with the content — which is
@@ -86,7 +86,11 @@ export default function PanelOverlay({
                 aria-label={activeProject ? 'Back to projects' : 'Close panel'}
                 onClick={activeProject ? () => setActiveProjectId(null) : onClose}
               >
-                {activeProject ? '← Back' : 'Close ✕'}
+                {/* Wrapped, not bare. The press ripple is positioned, so it
+                    paints above any text that is not itself in a positioned
+                    box; the stylesheet lifts a control's element children over
+                    it, and a bare text node has nothing to lift. */}
+                <span>{activeProject ? '← Back' : 'Close ✕'}</span>
               </button>
             </div>
 
@@ -134,7 +138,7 @@ export default function PanelOverlay({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
-                transition={{ duration: DURATION.content, ease: EASE_OUT_EXPO }}
+                transition={SPRING.content}
               >
                 <div className="project-detail-header">
                   <div className="project-tag">{activeProject.type}</div>

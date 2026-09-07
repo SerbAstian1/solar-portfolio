@@ -74,6 +74,8 @@
      keep in step rather than one. The easing curve is shared by both, so it
      is defined here and asserted equal to its JS counterpart in the tests. */
   --dur-hover:120ms;
+  /* Mirrored by RIPPLE_MS in useRipple.ts; the tokens test holds them equal. */
+  --dur-ripple:520ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -377,3 +379,49 @@ a{color:inherit; text-decoration:none;}
   :disabled { cursor: not-allowed; }
 }
 /* cursor:end */
+
+/* ===== Press ripple =====
+   Spawned at the pointer by useRipple and removed when it finishes. It scales
+   a circle and fades it, both compositor properties, so a press never costs a
+   layout — which matters because these fire on controls sitting over a live
+   WebGL scene.
+
+   The host's own clip-path does the containing: on the chamfered controls the
+   ripple is cut by the same angled corner as the border, so it stays inside
+   the shape without needing overflow rules of its own. */
+.ripple{
+  position:absolute; z-index:0;
+  border-radius:50%; pointer-events:none;
+  /* Positioned by its centre: the hook sets left/top to the press point. */
+  transform:translate(-50%,-50%) scale(0);
+  background:currentColor; opacity:0.28;
+  animation:ripple-out var(--dur-ripple) cubic-bezier(0.22,1,0.36,1) forwards;
+}
+@keyframes ripple-out{
+  to{transform:translate(-50%,-50%) scale(1); opacity:0;}
+}
+/* Ripple hosts need a containing block for it, and their own content needs to
+   sit above it — otherwise a label would be washed out by its own press. */
+.btn-outline, .panel-close, .project-card,
+.price-tier, .mobile-tile, .ground-option{
+  position:relative;
+}
+/* :not(.ripple) is load-bearing. The ripple is itself a direct child of the
+   control, so without the exclusion this rule caught it too and made it
+   position:relative — putting a 350px circle into the flow of a 40px button
+   and lifting it above the label it is supposed to sit beneath. */
+.btn-outline > *:not(.ripple),
+.panel-close > *:not(.ripple),
+.project-card > *:not(.ripple),
+.price-tier > *:not(.ripple),
+.mobile-tile > *:not(.ripple),
+.swatch > *:not(.ripple),
+.ground-option > *:not(.ripple){
+  position:relative; z-index:1;
+}
+/* Nothing is spawned under this preference — the hook checks it at press time
+   — but the rule stays as a second guard in case one is ever rendered by
+   another path. */
+@media(prefers-reduced-motion: reduce){
+  .ripple{display:none;}
+}

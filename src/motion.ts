@@ -39,3 +39,46 @@ export const DURATION = {
    *  further wait added onto the end of it. */
   panel: 0.26,
 } as const
+
+/**
+ * Springs, for the overlays.
+ *
+ * The site's overlays were tweened on ease-out-expo, and that curve is the
+ * reason they did not feel smooth. It front-loads almost all of its travel,
+ * which is the point over 400ms and a liability under 250: the element lurches
+ * away, then spends the rest of the time barely moving. It reads as a snap
+ * followed by a hesitation rather than as one movement.
+ *
+ * The stronger reason is interruption. A tween has a fixed start, end and
+ * length, so re-triggering it mid-flight restarts from a keyframe and the
+ * element jumps. A spring animates from wherever the value actually *is*,
+ * carrying its current velocity. That matters here in a place it is easy to
+ * observe: dragging the pointer across the planets re-triggers the hover card
+ * for each one in turn, and on a tween every re-trigger snapped back to the
+ * start. This is the property that makes platform UI feel alive, and it is
+ * mostly what "Apple-like" is describing.
+ *
+ * Every one of these is critically damped — `bounce: 0`. Overshoot belongs to
+ * motion that follows a gesture carrying momentum: a flick, a throw, a drag
+ * released. Nothing on this site is draggable, so a bounce here would be
+ * decoration pretending to be physics.
+ *
+ * `duration` on a framer spring is its perceptual response, not a fixed
+ * length; the true settle runs slightly past it and is what the eye reads as
+ * the movement finishing softly rather than stopping dead.
+ */
+export const SPRING = {
+  /** The panel arriving. */
+  panel: { type: 'spring', bounce: 0, duration: 0.52 },
+  /** Leaving. Shorter, for the reason the exit tween was: an entrance is
+   *  watched, an exit is already decided and in the way. */
+  panelExit: { type: 'spring', bounce: 0, duration: 0.26 },
+  /** The scrim, a touch behind the panel so the two read as one movement
+   *  with a leading edge rather than as two things starting at once. */
+  scrim: { type: 'spring', bounce: 0, duration: 0.42 },
+  scrimExit: { type: 'spring', bounce: 0, duration: 0.22 },
+  /** The hover card. Fastest of them: it is chasing a pointer. */
+  hint: { type: 'spring', bounce: 0, duration: 0.3 },
+  /** In-panel content swaps. */
+  content: { type: 'spring', bounce: 0, duration: 0.36 },
+} as const

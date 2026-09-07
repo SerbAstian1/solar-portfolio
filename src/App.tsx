@@ -5,6 +5,7 @@ import ErrorPage from './components/ErrorPage'
 import TelemetryStrip from './components/TelemetryStrip'
 import MobileNav from './components/MobileNav'
 import PanelOverlay from './components/PanelOverlay'
+import { useRipple } from './hooks/useRipple'
 import { useSpatialMode } from './hooks/useSpatialMode'
 import { useRouteSection } from './navigation/useRouteSection'
 import { PLANETS } from './data/planets'
@@ -21,6 +22,9 @@ const SolarSystem = lazy(() => import('./components/SolarSystem'))
 
 export default function App() {
   const mode = useSpatialMode()
+  /* One delegated listener for every control on the page, including the ones
+     inside the lazily loaded scene and the error pages below. */
+  useRipple()
   const hasScene = mode !== 'list'
 
   /* Routing is owned here, once. Both viewport branches and the fallback nav

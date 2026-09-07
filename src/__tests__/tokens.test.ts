@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { DURATION, EASE_OUT_EXPO, EASE_OUT_EXPO_CSS } from '../motion'
+import { RIPPLE_MS } from '../hooks/useRipple'
 
 const globalCss = readFileSync('src/styles/global.css', 'utf8')
 const sceneCss = readFileSync('src/styles/scene.css', 'utf8')
@@ -24,6 +25,10 @@ describe('motion tokens stay in sync across CSS and JS', () => {
     // the panel/scrim/tooltip timings belong to framer-motion and are defined
     // once in motion.ts rather than mirrored here.
     expect(token('dur-hover')).toBe(`${Math.round(DURATION.feedback * 1000)}ms`)
+    // The ripple's length lives in two files — the stylesheet animates it and
+    // the hook schedules its own cleanup against it. If they drift, nodes
+    // either vanish mid-animation or linger after it.
+    expect(token('dur-ripple')).toBe(`${RIPPLE_MS}ms`)
   })
 })
 
