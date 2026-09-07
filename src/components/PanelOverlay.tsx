@@ -1,13 +1,22 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { FormEvent } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { PlanetContent, Project } from '../data/types'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 import { DURATION, EASE_OUT_EXPO, SPRING } from '../motion'
 import OutlineButton, { OutlineLink } from './OutlineButton'
 import ProjectShowcase, { ProjectCover } from './ProjectShowcase'
+import ContactForm, { EMPTY_CONTACT, isContactComplete, type ContactValues } from './ContactForm'
+
+/* The submit button sits outside the <form> element, below it in the panel's
+   flow, so it is associated by id rather than by nesting. */
+const CONTACT_FORM_ID = 'contact-form'
 
 interface PanelOverlayProps {
   planet: PlanetContent | null
+  /** Lets the panel send a visitor to another section — the primary button on
+   *  every non-contact panel goes to Contact. */
+  onNavigate?: (id: string) => void
   /** Omitted by the fallback nav, which has no phased transition to wait on. */
   visible?: boolean
   onClose: () => void
@@ -19,6 +28,7 @@ interface PanelOverlayProps {
 
 export default function PanelOverlay({
   planet,
+  onNavigate,
   visible,
   onClose,
   activeProjectId: controlledProjectId,
@@ -28,6 +38,28 @@ export default function PanelOverlay({
   const activeProjectId = controlledProjectId ?? uncontrolledProjectId
   const setActiveProjectId = onActiveProjectChange ?? setUncontrolledProjectId
   const panelRef = useRef<HTMLDivElement | null>(null)
+  const isContact = Boolean(planet?.panel.contact)
+  const [contact, setContact] = useState<ContactValues>(EMPTY_CONTACT)
+  /* A counter rather than a boolean: two incomplete submits in a row have to
+     be distinguishable, or the second one moves no focus. */
+  const [focusRequest, setFocusRequest] = useState(0)
+  const complete = isContactComplete(contact)
+
+  const onSubmit = useCallback(
+    (event: FormEvent) => {
+      event.preventDefault()
+      if (!complete) {
+        setFocusRequest((n) => n + 1)
+        return
+      }
+      /* Nothing is sent yet: this form has never had a destination, and
+         inventing one — or showing a thank-you for a message that went
+         nowhere — would be worse than the silence. Wiring an endpoint here is
+         the one remaining step. */
+    },
+    [complete],
+  )
+
   const show = Boolean(planet) && (visible ?? true)
 
   useFocusTrap(panelRef, show, onClose)
@@ -192,24 +224,44 @@ export default function PanelOverlay({
             )}
 
             {planet.panel.contact && (
-              <form className="contact-form" onSubmit={(e) => e.preventDefault()}>
-                <div className="field">
-                  <label htmlFor="name">Name</label>
-                  <input id="name" type="text" placeholder="Your full name" />
-                </div>
-                <div className="field">
-                  <label htmlFor="email">Email</label>
-                  <input id="email" type="email" placeholder="you@company.com" />
-                </div>
-                <div className="field">
-                  <label htmlFor="message">Message</label>
-                  <textarea id="message" rows={4} placeholder="What are you building?" />
-                </div>
+              <form
+                id={CONTACT_FORM_ID}
+                className="contact-form-shell"
+                onSubmit={onSubmit}
+                noValidate
+              >
+                <ContactForm
+                  values={contact}
+                  onChange={setContact}
+                  focusRequest={focusRequest}
+                />
               </form>
             )}
 
-            <div style={{ marginTop: 32 }}>
-              <OutlineButton>Start a project</OutlineButton>
+            {/* One button, two jobs. On every other panel it is the way to
+                Contact; on Contact itself it is the form's submit, so the
+                visitor is never offered a route to the page they are already
+                on. */}
+            <div className="panel-cta">
+              {isContact ? (
+                <OutlineButton
+                  type="submit"
+                  form={CONTACT_FORM_ID}
+                  className={complete ? 'is-ready' : 'is-waiting'}
+                  /* Deliberately not `disabled`. A disabled button cannot be
+                     focused, so a keyboard or screen-reader user has no way to
+                     reach it and find out what is missing — they are simply
+                     stuck. It stays reachable and says it is not ready
+                     instead, and pressing it moves focus to the first gap. */
+                  aria-disabled={!complete || undefined}
+                >
+                  Submit
+                </OutlineButton>
+              ) : (
+                <OutlineButton onClick={() => onNavigate?.('contact')}>
+                  Start a project
+                </OutlineButton>
+              )}
             </div>
           </motion.div>
         </motion.div>

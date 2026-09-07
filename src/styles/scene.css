@@ -427,7 +427,6 @@
 }
 
 /* ===== Contact form ===== */
-.contact-form{margin-top:var(--space-6);}
 .field{margin-bottom:var(--space-6);}
 .field label{display:block; font-size:var(--text-caption); text-transform:uppercase; letter-spacing:var(--tracking-md); color:rgba(255,255,255,0.55); margin-bottom:10px;}
 .field input, .field textarea{
@@ -688,4 +687,72 @@
 .scene-notice button{
   background:none; border:none; padding:0; cursor:pointer;
   font:inherit; color:var(--orange); text-decoration:underline;
+}
+
+
+/* ===== Contact form ===== */
+.contact-form-shell{margin-top:var(--space-5);}
+.contact-form{display:flex; flex-direction:column; gap:var(--space-4);}
+.field{display:flex; flex-direction:column; gap:6px;}
+/* Two across where there is room; the budget and timeline are short answers
+   and reading them as one line keeps the form from feeling like an interview. */
+.field-row{display:grid; grid-template-columns:1fr 1fr; gap:var(--space-3);}
+@media (max-width:560px){.field-row{grid-template-columns:1fr;}}
+.field label{
+  font-family:var(--font-head); font-size:var(--text-eyebrow);
+  text-transform:uppercase; letter-spacing:var(--tracking-label);
+  color:var(--orange);
+}
+/* Sits above the control, not inside it. A placeholder disappears the moment
+   someone starts typing, which is exactly when the guidance is wanted. */
+.field-hint{
+  font-size:var(--text-micro); color:rgba(255,255,255,0.55);
+  line-height:var(--leading-body); margin:0 0 2px;
+}
+.contact-form input,
+.contact-form select,
+.contact-form textarea{
+  width:100%; padding:11px 13px;
+  background-color:rgba(255,255,255,0.04);
+  border:1px solid var(--line); border-radius:0;
+  color:var(--white); font:inherit; font-size:var(--text-body-sm);
+  transition:border-color var(--dur-hover) ease-out,
+             background-color var(--dur-hover) ease-out;
+}
+.contact-form textarea{resize:vertical; min-height:120px; line-height:var(--leading-body);}
+.contact-form ::placeholder{color:rgba(255,255,255,0.35);}
+.contact-form input:focus-visible,
+.contact-form select:focus-visible,
+.contact-form textarea:focus-visible{
+  outline:none; border-color:var(--orange);
+  background-color:rgba(255,255,255,0.06);
+}
+/* Only after a submit attempt — the component decides when, so nothing is
+   marked wrong while it is still being typed. */
+.contact-form [aria-invalid="true"]{border-color:#F5854F;}
+.contact-form select{appearance:none; cursor:pointer;}
+.contact-form option{background:#0B0B0E; color:var(--white);}
+
+.panel-cta{margin-top:var(--space-5);}
+/* Two states for one control. Grey says the form is not ready; the brand
+   colour says it is. It is never `disabled`: a disabled button drops out of
+   the focus order, so the person most in need of being told what is missing
+   is the one who cannot reach the control that would tell them. */
+.btn-outline.is-waiting{
+  border-color:rgba(255,255,255,0.28);
+  color:rgba(255,255,255,0.45);
+}
+.btn-outline.is-waiting:not(:disabled):hover,
+.btn-outline.is-waiting:not(:disabled):focus-visible{
+  --edge:rgba(255,255,255,0.45);
+  border-color:rgba(255,255,255,0.45); color:rgba(255,255,255,0.6);
+}
+.btn-outline.is-ready{
+  --edge:var(--orange);
+  border-color:var(--orange); color:var(--orange);
+  background-color:var(--orange-wash);
+}
+.btn-outline.is-ready:not(:disabled):hover,
+.btn-outline.is-ready:not(:disabled):focus-visible{
+  background-color:var(--orange); color:var(--black);
 }

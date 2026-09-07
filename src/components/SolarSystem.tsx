@@ -134,6 +134,7 @@ export default function SolarSystem({ sectionId, navigate, mode = 'full' }: Sola
 
       <PanelOverlay
         planet={selectedPlanet}
+        onNavigate={navigate}
         visible={panelVisible}
         activeProjectId={activeProjectId}
         onActiveProjectChange={setActiveProjectId}

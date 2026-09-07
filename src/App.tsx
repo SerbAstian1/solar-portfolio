@@ -120,7 +120,7 @@ export default function App() {
                 </button>
               </p>
               <MobileNav onSelect={navigate} />
-              <PanelOverlay planet={section} onClose={() => navigate(null)} />
+              <PanelOverlay planet={section} onClose={() => navigate(null)} onNavigate={navigate} />
             </div>
           }
         >
@@ -135,7 +135,7 @@ export default function App() {
       ) : (
         <div className="mobile-only">
           <MobileNav onSelect={navigate} />
-          <PanelOverlay planet={section} onClose={() => navigate(null)} />
+          <PanelOverlay planet={section} onClose={() => navigate(null)} onNavigate={navigate} />
         </div>
       )}
     </>
