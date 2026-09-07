@@ -92,10 +92,33 @@ export interface PricingTier {
   readonly features: readonly string[]
 }
 
+/**
+ * What the studio sells, split by how it is sold.
+ *
+ * The two are not a ranking of quality but of how the work arrives: a primary
+ * service is a project someone comes for, a secondary one is work that usually
+ * attaches to a project already underway. Keeping them in one list flattened
+ * that, and left a poster looking like an alternative to a whole identity
+ * system.
+ */
+export interface ServiceOffer {
+  readonly name: string
+  readonly summary: string
+  /** What a client actually receives. Primary services only — a secondary
+   *  service is a line item, not a programme of work. */
+  readonly includes?: readonly string[]
+}
+
+export interface ServiceSet {
+  readonly primary: readonly ServiceOffer[]
+  readonly secondary: readonly ServiceOffer[]
+}
+
 export interface PanelContent {
   readonly eyebrow: string
   readonly title: string
   readonly body?: string
+  readonly services?: ServiceSet
   readonly tiers?: readonly PricingTier[]
   readonly projects?: readonly Project[]
   readonly contact?: boolean

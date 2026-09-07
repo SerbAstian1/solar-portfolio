@@ -126,6 +126,44 @@ export default function PanelOverlay({
             <h2 id="panel-title">{planet.panel.title}</h2>
             {planet.panel.body && <p>{planet.panel.body}</p>}
 
+            {planet.panel.services && (
+              <section className="services" aria-label="Services">
+                {/* The two that carry the studio, given the room to say what
+                    they actually include. */}
+                <div className="service-primary">
+                  {planet.panel.services.primary.map((service) => (
+                    <article className="service-card" key={service.name}>
+                      <h3>{service.name}</h3>
+                      <p className="service-summary">{service.summary}</p>
+                      {service.includes && (
+                        <ul className="service-includes">
+                          {service.includes.map((line) => (
+                            <li key={line}>{line}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </article>
+                  ))}
+                </div>
+
+                {/* Set apart rather than listed alongside. These are real
+                    services, but they attach to a project rather than being
+                    the reason one starts, and ranking them level with a whole
+                    identity system misrepresents both. */}
+                <div className="service-secondary">
+                  <h3 className="service-secondary-label">Alongside the above</h3>
+                  <ul>
+                    {planet.panel.services.secondary.map((service) => (
+                      <li key={service.name}>
+                        <span className="service-secondary-name">{service.name}</span>
+                        <span className="service-secondary-summary">{service.summary}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </section>
+            )}
+
             {planet.panel.tiers && (
               <div className="pricing-grid">
                 {planet.panel.tiers.map((tier) => (

@@ -756,3 +756,49 @@
 .btn-outline.is-ready:not(:disabled):focus-visible{
   background-color:var(--orange); color:var(--black);
 }
+
+/* ===== Services =====
+   Two tiers, and the layout is the argument: the primary services get a card
+   each with room for what they include, the secondary ones a compact list.
+   Setting them level would say a poster and a whole identity system are
+   alternatives to one another. */
+.services{display:flex; flex-direction:column; gap:var(--space-5); margin-top:var(--space-5);}
+.service-primary{display:flex; flex-direction:column; gap:var(--space-3);}
+.service-card{
+  border:1px solid var(--line);
+  border-left:2px solid var(--orange);
+  background-color:rgba(255,255,255,0.02);
+  padding:var(--space-4);
+}
+.service-card h3{
+  font-family:var(--font-head); font-weight:700; font-size:var(--text-lead);
+  color:var(--white); margin-bottom:6px;
+}
+.service-summary{
+  color:rgba(255,255,255,0.72); line-height:var(--leading-body);
+  margin-bottom:var(--space-3);
+}
+.service-includes{list-style:none; display:flex; flex-direction:column; gap:8px;}
+.service-includes li{
+  position:relative; padding-left:var(--space-4);
+  font-size:var(--text-small); color:rgba(255,255,255,0.62);
+  line-height:var(--leading-body);
+}
+.service-includes li::before{content:"—"; position:absolute; left:0; color:var(--orange);}
+
+.service-secondary{border-top:1px solid var(--line); padding-top:var(--space-4);}
+.service-secondary-label{
+  font-family:var(--font-head); font-size:var(--text-eyebrow);
+  text-transform:uppercase; letter-spacing:var(--tracking-label);
+  color:var(--orange); margin-bottom:var(--space-3);
+}
+.service-secondary ul{list-style:none; display:flex; flex-direction:column; gap:var(--space-3);}
+.service-secondary li{display:flex; flex-direction:column; gap:2px;}
+.service-secondary-name{
+  font-family:var(--font-head); font-weight:600; font-size:var(--text-body-sm);
+  color:var(--white);
+}
+.service-secondary-summary{
+  font-size:var(--text-micro); color:rgba(255,255,255,0.55);
+  line-height:var(--leading-body);
+}

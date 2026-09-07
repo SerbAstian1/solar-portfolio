@@ -182,11 +182,57 @@ export const PLANETS: readonly PlanetContent[] = [
     id: 'services',
     label: 'Services',
     cat: 'What I Offer',
-    preview: 'Brand identity, web design, art direction, and content — standalone or bundled.',
+    preview: 'Two things I do properly — brand identity and cover artwork — plus the work that surrounds them.',
     panel: {
       eyebrow: 'Services',
-      title: 'What I offer.',
-      body: 'Brand identity systems, web design and build, art direction for print and campaign work, and UGC/marketing content — as standalone engagements or bundled partnerships.',
+      title: 'Two things, done properly.',
+      body: 'Brand identity and cover artwork are what I build from the ground up. Everything else is work that attaches to those — useful, and rarely the reason a project starts.',
+      services: {
+        primary: [
+          {
+            name: 'Brand identity',
+            summary:
+              'A complete identity and the document that keeps it intact — mark, colour, type, and how all of it behaves once other people are using it.',
+            includes: [
+              'Logo system: symbol, lockups and approved variations',
+              'Colour system with tints, shades and usage rules',
+              'Typographic system across display, body and UI',
+              'Application: stationery, signage, packaging, social',
+              'A written guideline your team can actually follow',
+            ],
+          },
+          {
+            name: 'Album & cover artwork',
+            summary:
+              'Cover art for a release, built to survive the places it will actually be seen — a thumbnail in a feed as readily as a printed sleeve.',
+            includes: [
+              'Primary cover artwork, print and digital',
+              'Streaming and platform crops',
+              'Release package: singles, promos, social frames',
+              'Typography and title treatment',
+              'Merch and physical concepts where wanted',
+            ],
+          },
+        ],
+        secondary: [
+          {
+            name: 'Web design & development',
+            summary: 'Sites and interfaces, designed and built — usually the place an identity meets its audience first.',
+          },
+          {
+            name: 'Social media content',
+            summary: 'Templates, campaign frames and UGC direction that hold a brand together between larger pieces.',
+          },
+          {
+            name: 'Event & campaign posters',
+            summary: 'Single-surface work: posters, flyers and key art for launches, shows and campaigns.',
+          },
+          {
+            name: 'Art direction',
+            summary: 'Direction for photography, imagery and print when a project needs a hand held over it rather than a deliverable.',
+          },
+        ],
+      },
     },
   },
   {
