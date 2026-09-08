@@ -44,8 +44,11 @@ describe('tier to budget mapping', () => {
        was written, rather than restating it. */
     const floor = (price: string): number | null => {
       const m = /₦([\d.]+)(k|M)/i.exec(price)
-      if (!m) return null
-      return Number(m[1]) * (m[2].toLowerCase() === 'm' ? 1_000_000 : 1_000)
+      // Both groups are required by the pattern, but TypeScript types capture
+      // groups as possibly undefined, so this is checked rather than asserted.
+      const [, amount, unit] = m ?? []
+      if (!amount || !unit) return null
+      return Number(amount) * (unit.toLowerCase() === 'm' ? 1_000_000 : 1_000)
     }
     for (const tier of TIERS) {
       const from = floor(tier.price)

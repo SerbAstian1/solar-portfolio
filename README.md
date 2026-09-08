@@ -64,26 +64,43 @@ and flatter, more linear-looking orbits. `ORBIT_TILT` in
 src/
   orbital/          pure maths — no React, no three, fully tested
     kepler.ts         Kepler's equation, third law, ellipse position
+    constants.ts      tilt, direction, and which way depth maps to screen
     elements.ts       the system as data, planets and moons
     hierarchy.ts      world = parent world + local orbit
     camera.ts         focus target and framing
     occultation.ts    circle intersection, coverage, transit state
     interpolation.ts  lerp, smoothstep, critically damped spring
     cursorField.ts    bounded pointer disturbance
-  simulation-side components/
+  render/           the dither, shared by canvas and WebGL
+    bayer.ts          8x8 matrix + its closed form, no three import
+    dither.ts         material hook, star-lit phase, hover glow
+  components/
     ThreeSolarSystem  R3F scene: camera rig, star, planets, moons, labels
     SolarSystem       scene host, hover and selection state
-    DitherCanvas      8x8 Bayer ordered dither + starfield + comets
+    DitherCanvas      starfield and comets, dithered on 2D canvas
     PanelOverlay      content panel (focus-trapped dialog)
+    ProjectShowcase   marks, palette, type and applications per project
+    ContactForm       the enquiry form and its completeness rules
+    TelemetryStrip    bottom rail: design tips alternating with the clock
+    ErrorBoundary     catches render throws; ErrorPage renders the result
+    OutlineButton     the site's button, with its scramble label
+  hooks/
+    useScramble       hover/focus label resolve, time-based
+    useRipple         press echo of a control's own outline
+    usePlanetNavigation  the five-phase open/close transition
+  motion/logo/      mark reveal, adapted from motion-design-skills (MIT)
   navigation/
-    routes.ts         path <-> section
+    routes.ts         path <-> section, and what counts as unknown
     useRouteSection   History API binding
   data/
     planets.ts        all section copy — edit this to change content
+    tips.ts           the hundred design tips shown in the rail
     seo.ts            per-route title and description
 scripts/
   optimize-models.mjs  GLB texture re-encode
-  prerender.mjs        static HTML per route + sitemap + robots
+  build-cursor.mjs     generates the pixel cursor into global.css
+  trim-audio.mjs       lossless frame-accurate MP3 trim
+  prerender.mjs        static HTML per route + 404 + sitemap + robots
   check-size.mjs       enforces perf-budget.json
 ```
 
@@ -112,10 +129,24 @@ Enforced by `npm run size`, which exits non-zero on a breach.
 
 | | Budget | Actual |
 |---|---|---|
-| Entry JS (every device) | 170 KB | 88 KB gzip |
-| Scene chunk (≥640px only) | 260 KB | 245 KB gzip |
-| CSS | 20 KB | 3.1 KB gzip |
-| 3D assets | 1100 KB | 1042 KB |
+| Entry JS (every device) | 170 KB | 98 KB gzip |
+| Scene chunk (desktop only) | 260 KB | 246 KB gzip |
+| CSS | 20 KB | 6 KB gzip |
+| 3D models | 1100 KB | 1042 KB |
+| Project imagery | 1200 KB | 293 KB |
+| Largest single image | 180 KB | 75 KB |
+| Audio | 4000 KB | 0 KB |
+
+Models and imagery are budgeted apart because different people pay for them:
+the 3D payload is fetched only above the scene breakpoint, while imagery is
+fetched at every viewport. The per-image cap is the one that catches problems
+day to day — a total can be met while one forgotten 900KB export sits inside
+it, and that single file is what a phone chokes on.
+
+The scan is recursive and covers models, images and audio. It has twice been
+blind to something real: a subdirectory it never walked into, and an audio
+format its patterns did not name. Anything the site can ship needs a line
+here, or the gate only checks what someone remembered to tell it about.
 
 ## Error states
 
@@ -151,12 +182,20 @@ exists. If the host has a setting for this, set it to return a real `404`.
 
 ## Known gaps
 
-- Contact form has no submit handler and no `name` attributes — it needs a real
-  endpoint plus pending/success/error states.
-- `og-cover.png` is referenced by the share tags but does not exist yet; it
-  needs a real 1200×630 image.
+- The contact form has no endpoint. It validates, reports completeness and
+  refuses to lie about having sent anything, but nothing is transmitted —
+  wiring Formspree, Netlify Forms or a `mailto:` is the remaining step. The
+  fields carry `id` but no `name`, which a native form POST would need.
+- Album cover projects show placeholder artwork, and their Spotify links point
+  at real tracks that are not the clients' releases.
+- `og-cover.png` is referenced by the share tags but does not exist; it needs a
+  real 1200x630 image.
 - Individual projects are not deep-linkable — there are no `/work/:project`
   routes yet.
-- Pricing figures and case-study copy in `data/planets.ts` are illustrative.
+- Pricing figures in `data/planets.ts` are illustrative. The two branding case
+  studies are real; the two cover projects are not yet.
+- Background audio was built and then removed along with its track. The size
+  gate keeps an audio line so a future file is visible, and `git revert` of the
+  removal restores the player, control and fades intact.
 - Two npm advisories in vite@5/esbuild, both dev-server-only and absent from
   production output. The fix is vite@8, a three-major jump.
