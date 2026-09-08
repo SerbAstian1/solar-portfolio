@@ -2,6 +2,7 @@ import { Suspense, lazy } from 'react'
 import DitherCanvas from './components/DitherCanvas'
 import ErrorBoundary from './components/ErrorBoundary'
 import ErrorPage from './components/ErrorPage'
+import SceneLoading from './components/SceneLoading'
 import TelemetryStrip from './components/TelemetryStrip'
 import MobileNav from './components/MobileNav'
 import PanelOverlay from './components/PanelOverlay'
@@ -124,7 +125,7 @@ export default function App() {
             </div>
           }
         >
-          <Suspense fallback={<div className="scene-loading" aria-hidden="true" />}>
+          <Suspense fallback={<SceneLoading />}>
             <SolarSystem
               sectionId={sectionId}
               navigate={navigate}

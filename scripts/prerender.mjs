@@ -104,7 +104,20 @@ function stripInjected(html) {
  * `media` on `modulepreload` is uneven, and the cost of it being ignored is a
  * phone downloading two megabytes it will never mount — the scene does not
  * render at all below the breakpoint. matchMedia is exact, and it is the same
- * query useSpatialMode uses, imported from one place so the two cannot drift.
+ * query useSpatialMode uses, read from one place so the two cannot drift.
+ *
+ * Every hint is fetchpriority=low, and that is not a detail. Without it these
+ * are high-priority requests competing with the entry bundle for the same
+ * bandwidth, and on a slow connection they win often enough to starve it:
+ * measured on a throttled link, first paint went from under a second to 7.6s,
+ * with nothing on screen at all until the whole 1.9MB had landed. The site
+ * had been made faster for people on fast connections and materially worse
+ * for everyone else.
+ *
+ * Low priority keeps the parallelism — the requests still start immediately —
+ * while letting the entry bundle finish first, so the page paints, then the
+ * scene fills in behind it. That is the ordering that was wanted in the first
+ * place.
  */
 function preloadHints() {
   const assets = readdirSync(join(DIST, 'assets'))
@@ -119,9 +132,11 @@ function preloadHints() {
 
   return `<script>(function(){if(!matchMedia(${JSON.stringify(query)}).matches)return;` +
     `var h=document.head,l;` +
-    `l=document.createElement('link');l.rel='modulepreload';l.href='/assets/${scene}';h.appendChild(l);` +
+    `l=document.createElement('link');l.rel='modulepreload';l.href='/assets/${scene}';` +
+    `l.setAttribute('fetchpriority','low');h.appendChild(l);` +
     `['/sun3d.glb','/planet3d.glb'].forEach(function(u){` +
-    `var p=document.createElement('link');p.rel='preload';p.as='fetch';p.crossOrigin='anonymous';p.href=u;h.appendChild(p);});` +
+    `var p=document.createElement('link');p.rel='preload';p.as='fetch';p.crossOrigin='anonymous';` +
+    `p.setAttribute('fetchpriority','low');p.href=u;h.appendChild(p);});` +
     `})();</script>`
 }
 
