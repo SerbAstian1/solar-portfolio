@@ -78,7 +78,7 @@ const PROJECT_TYPES = [
    same thing as the number a visitor has already seen. "Not sure yet" is a
    real answer rather than an escape hatch: plenty of good enquiries do not
    know the figure, and forcing one invents a number nobody believes. */
-const BUDGETS = [
+export const BUDGETS = [
   'Under ₦350k',
   '₦350k – ₦850k',
   '₦850k – ₦1.6M',

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import type { PlanetContent, Project } from '../data/types'
+import type { PlanetContent, PricingTier, Project } from '../data/types'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 import { DURATION, EASE_OUT_EXPO, SPRING } from '../motion'
 import OutlineButton, { OutlineLink } from './OutlineButton'
@@ -44,6 +44,28 @@ export default function PanelOverlay({
      be distinguishable, or the second one moves no focus. */
   const [focusRequest, setFocusRequest] = useState(0)
   const complete = isContactComplete(contact)
+
+  /* Picking a tier fills in what it already tells us and moves to Contact.
+     The panel does not remount between sections, so the values set here are
+     still there when the form renders.
+
+     Only the two fields the tier actually determines are filled. Guessing at
+     the project type or the timeline from a price band would put words in
+     someone's mouth and, worse, leave the form looking complete when nobody
+     had answered it. */
+  const chooseTier = useCallback(
+    (tier: PricingTier) => {
+      setContact((current) => ({
+        ...current,
+        budget: tier.budget,
+        brief: current.brief.trim() === ''
+          ? `Interested in the ${tier.name} tier (${tier.price}). `
+          : current.brief,
+      }))
+      onNavigate?.('contact')
+    },
+    [onNavigate],
+  )
 
   const onSubmit = useCallback(
     (event: FormEvent) => {
@@ -175,6 +197,21 @@ export default function PanelOverlay({
                         <li key={f}>{f}</li>
                       ))}
                     </ul>
+                    {/* A button laid over the whole card rather than the card
+                        made into one. A <button> may only contain phrasing
+                        content, and this card holds a list — wrapping it would
+                        be invalid markup that browsers then reflow
+                        unpredictably. This keeps the card's structure intact,
+                        makes every pixel of it clickable, and puts a single
+                        real control in the tab order with a label that says
+                        what it does rather than reading the card aloud. */}
+                    <button
+                      type="button"
+                      className="tier-choose"
+                      onClick={() => chooseTier(tier)}
+                    >
+                      Start a {tier.name} project
+                    </button>
                   </div>
                 ))}
               </div>

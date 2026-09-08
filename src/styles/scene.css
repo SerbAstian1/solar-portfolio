@@ -349,7 +349,20 @@
 @media (min-width:640px){
   .pricing-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
 }
+/* The overlay control. Covers the card so the whole surface is the target,
+   sits above nothing else, and carries the accessible name — the card's own
+   text is left alone rather than being read out as a label. */
+.tier-choose{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  background:none; border:none; padding:0;
+  cursor:pointer;
+  /* Present to assistive tech and to the pointer, invisible on screen. The
+     card's own visible states are what a sighted visitor reads. */
+  font-size:0; color:transparent;
+}
 .price-tier{
+  position:relative;
   border:1px solid var(--line); padding:24px; background:rgba(255,255,255,0.02);
   transition:border-color var(--dur-hover) ease-out, transform 200ms ease-out, background 200ms ease-out;
 }
@@ -790,51 +803,5 @@
   line-height:var(--leading-body);
 }
 
-/* ===== Sound toggle =====
-   Sits above the telemetry rail on the scene side, clear of the panel, which
-   is docked right. Retracts with the rail when a panel opens: the sound keeps
-   playing, but the control belongs to the scene's furniture and goes with it. */
-.sound-toggle{
-  position:fixed; z-index:95;
-  left:clamp(16px, 3vw, 40px); bottom:58px;
-  display:inline-flex; align-items:center; gap:9px;
-  padding:8px 12px;
-  background-color:rgba(7,8,11,0.72);
-  border:1px solid var(--line);
-  color:rgba(255,255,255,0.6);
-  font-family:var(--font-head); font-size:var(--text-eyebrow);
-  text-transform:uppercase; letter-spacing:var(--tracking-label);
-  cursor:pointer;
-  transition:color var(--dur-hover) ease-out,
-             border-color var(--dur-hover) ease-out,
-             opacity 220ms var(--ease-out),
-             transform 220ms var(--ease-out);
-}
-.sound-toggle:hover, .sound-toggle:focus-visible{
-  color:var(--orange); border-color:var(--orange);
-}
-.sound-toggle.is-on{color:var(--orange); border-color:var(--orange);}
-.sound-bars{display:flex; align-items:flex-end; gap:2px; height:12px;}
-.sound-bars i{
-  width:2px; height:3px; background:currentColor;
-  transition:height 200ms var(--ease-out);
-}
-/* Standing up is the "on" state. Animated only while playing, so a resting
-   page has nothing running in it. */
-.sound-toggle.is-on .sound-bars i{animation:sound-bar 1100ms ease-in-out infinite;}
-.sound-toggle.is-on .sound-bars i:nth-child(2){animation-delay:180ms; height:9px;}
-.sound-toggle.is-on .sound-bars i:nth-child(3){animation-delay:360ms; height:6px;}
-@keyframes sound-bar{
-  0%, 100%{height:3px;}
-  50%{height:12px;}
-}
-/* The bars are the state indicator; without motion they still differ by
-   colour, and the label still reads "Sound on". */
-@media(prefers-reduced-motion: reduce){
-  .sound-toggle.is-on .sound-bars i{animation:none;}
-  .sound-toggle{transition:none;}
-}
-@media (max-width:560px){
-  .sound-toggle .sound-label{display:none;}
-  .sound-toggle{padding:9px 10px;}
+
 }

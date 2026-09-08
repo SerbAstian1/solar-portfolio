@@ -2,7 +2,6 @@ import { Suspense, lazy } from 'react'
 import DitherCanvas from './components/DitherCanvas'
 import ErrorBoundary from './components/ErrorBoundary'
 import ErrorPage from './components/ErrorPage'
-import SoundToggle from './components/SoundToggle'
 import TelemetryStrip from './components/TelemetryStrip'
 import MobileNav from './components/MobileNav'
 import PanelOverlay from './components/PanelOverlay'
@@ -72,7 +71,6 @@ export default function App() {
           a clock that disappears on a phone is a worse clock. Without the
           scene it simply has no telemetry to cycle to and holds the time. */}
       <TelemetryStrip retracted={section !== null} />
-      <SoundToggle />
 
       {/* Exactly one h1 at every viewport. The scene branch has no visible
           heading of its own, so the document previously started at h2 on
