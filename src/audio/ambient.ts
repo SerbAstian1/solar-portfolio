@@ -32,13 +32,13 @@ export interface Ambient {
 /**
  * Plays the site's background track.
  *
- * Streamed through an <audio> element rather than decoded into an AudioBuffer,
- * which matters more here than it usually would. The file is fourteen and a
- * half minutes long; `decodeAudioData` would hold all of it as uncompressed
- * float PCM, which for stereo at 44.1kHz is roughly 150MB of memory for a
- * 6.5MB download, and none of it would play until the whole file had arrived.
- * An element streams: audio starts within a second or two and memory stays
- * flat.
+ * Streamed through an <audio> element rather than decoded into an AudioBuffer.
+ * `decodeAudioData` holds the whole file as uncompressed float PCM — for three
+ * minutes of 44.1kHz stereo that is about 63MB of memory for a 3.5MB download,
+ * and nothing plays until all of it has arrived. An element streams: audio
+ * starts within a second or two and memory stays flat. The gap widens with
+ * every second of track, so this stays the right choice if the loop is ever
+ * lengthened again.
  *
  * The element is still routed through Web Audio rather than played directly,
  * because `HTMLAudioElement.volume` cannot be ramped — every fade would be a
@@ -46,8 +46,8 @@ export interface Ambient {
  * starting and stopping smooth.
  *
  * `preload="none"` is the other half of the size story: nothing is fetched
- * until someone actually asks for sound, so the 6.5MB is never paid by a
- * visitor who leaves it off.
+ * until someone actually asks for sound, so a visitor who leaves it off pays
+ * none of it.
  */
 export function createAmbient(): Ambient {
   const el = new Audio()
