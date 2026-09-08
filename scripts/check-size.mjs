@@ -71,6 +71,12 @@ const modelFiles = publicFiles.filter((f) => /\.(glb|gltf|ktx2)$/i.test(f))
    vector artwork — the kind most likely to be added next — weighed nothing as
    far as the gate was concerned. */
 const imageFiles = publicFiles.filter((f) => /\.(png|jpe?g|webp|avif|gif|svg)$/i.test(f))
+/* Audio was invisible to this gate until a 6.5MB track landed in public/ and
+   every budget still reported green — the same blind spot the old
+   non-recursive scan had, in a different costume. Anything the site can ship
+   needs a line here, or the gate is only checking what someone remembered to
+   tell it about. */
+const audioFiles = publicFiles.filter((f) => /\.(mp3|m4a|aac|ogg|opus|wav|flac)$/i.test(f))
 
 /* The total is the wrong alarm on its own: twenty tidy images and one
    forgotten 900KB export sum to the same number as twenty-one middling ones,
@@ -88,6 +94,7 @@ const checks = [
   ['public 3D models (raw)', sum(modelFiles), budget.modelsKB],
   ['public imagery (raw)', sum(imageFiles), budget.imagesKB],
   ['largest single image', heaviest.kb, budget.maxImageKB],
+  ['public audio (raw)', sum(audioFiles), budget.audioKB],
 ]
 
 let failed = 0

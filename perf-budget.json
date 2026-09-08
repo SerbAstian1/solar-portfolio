@@ -5,10 +5,13 @@
 
   "_imagesJustification": "Split out of the old single assets budget, which was one pool at 1100KB with the models already filling 1042KB of it — 58KB of headroom, less than one unoptimised export. Two separate budgets because the two are not paid for by the same visitor: the models are fetched only above the scene breakpoint, while project imagery is fetched at every viewport, so per kilobyte it costs more and deserves its own ceiling rather than whatever the models leave behind. 1200KB total assumes roughly four projects of six images at WebP/AVIF, all behind three interactions and lazy-loaded, none on the LCP path. maxImageKB is the check that matters day to day: a total can be met while one forgotten 900KB export sits inside it, and that single file is the thing a phone actually chokes on. 180KB is a 1400px-wide WebP at reasonable quality.",
 
+  "_audioJustification": "7500KB for a single 14-minute background track at 64kbps. Larger than every other budget here combined, and acceptable only because of when it is paid: the file is preload=\"none\" and streamed, so nothing is fetched until a visitor presses the sound control, and a visitor who never does downloads zero bytes of it. It is off the first paint, off the LCP path, and off every automated audit. The ceiling exists so a second track, or a re-export at a higher bitrate, has to be a decision rather than an accident — 64kbps over fourteen minutes is already near the floor for the length, so the real lever is trimming the track, not re-encoding it.",
+
   "entryJsGzipKB": 170,
   "sceneJsGzipKB": 260,
   "cssGzipKB": 20,
   "modelsKB": 1100,
   "imagesKB": 1200,
-  "maxImageKB": 180
+  "maxImageKB": 180,
+  "audioKB": 7500
 }
