@@ -17,7 +17,7 @@
  *
  * Run after `vite build`.
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
@@ -89,6 +89,44 @@ function stripInjected(html) {
     .replace(/<!--static:start-->[\s\S]*?<!--static:end-->/g, '')
 }
 
+/**
+ * Starts the scene downloading at the same moment as the entry bundle.
+ *
+ * The 3D scene is a React.lazy import, which Vite cannot see at build time and
+ * therefore never emits a preload hint for. The result is a strictly serial
+ * chain, measured on this build: the entry JS begins at 75ms, and the 900KB
+ * scene chunk is not even *requested* until 903ms, because the browser only
+ * learns it exists once the entry bundle has downloaded, parsed and run. The
+ * models follow at 1057ms. Nearly a second passes with the dithered background
+ * on screen and nothing else, which is exactly the gap this closes.
+ *
+ * Gated in script rather than with a `media` attribute on the link. Support for
+ * `media` on `modulepreload` is uneven, and the cost of it being ignored is a
+ * phone downloading two megabytes it will never mount — the scene does not
+ * render at all below the breakpoint. matchMedia is exact, and it is the same
+ * query useSpatialMode uses, imported from one place so the two cannot drift.
+ */
+function preloadHints() {
+  const assets = readdirSync(join(DIST, 'assets'))
+  const scene = assets.find((f) => /^SolarSystem-.*\.js$/.test(f))
+  if (!scene) {
+    console.warn('  ! no scene chunk found — skipping preload hints')
+    return ''
+  }
+  const query = readFileSync('src/hooks/useSpatialMode.ts', 'utf8')
+    .match(/SCENE_QUERY\s*=\s*'([^']+)'/)?.[1]
+  if (!query) throw new Error('could not read SCENE_QUERY from useSpatialMode.ts')
+
+  return `<script>(function(){if(!matchMedia(${JSON.stringify(query)}).matches)return;` +
+    `var h=document.head,l;` +
+    `l=document.createElement('link');l.rel='modulepreload';l.href='/assets/${scene}';h.appendChild(l);` +
+    `['/sun3d.glb','/planet3d.glb'].forEach(function(u){` +
+    `var p=document.createElement('link');p.rel='preload';p.as='fetch';p.crossOrigin='anonymous';p.href=u;h.appendChild(p);});` +
+    `})();</script>`
+}
+
+const HINTS = preloadHints()
+
 const template = stripInjected(readFileSync(join(DIST, 'index.html'), 'utf8'))
 
 function organizationLd() {
@@ -143,6 +181,7 @@ function render(section) {
     `<meta name="twitter:description" content="${escape(seo.description)}" />`,
     `<meta name="twitter:image" content="${origin}/og-cover.png" />`,
     `<script type="application/ld+json">${section ? pageLd(section, seo, url) : organizationLd()}</script>`,
+    HINTS,
   ].join('\n  ')
 
   const html = template
