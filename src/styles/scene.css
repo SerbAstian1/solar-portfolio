@@ -848,3 +848,34 @@
   font-size:var(--text-micro); color:rgba(255,255,255,0.55);
   line-height:var(--leading-body);
 }
+
+/* ===== Contact submission states ===== */
+.contact-error{
+  margin-top:var(--space-3); padding:11px 13px;
+  border:1px solid #F5854F; border-left-width:2px;
+  background-color:rgba(235,94,40,0.08);
+  font-size:var(--text-micro); color:#F5854F;
+  line-height:var(--leading-body);
+}
+/* Replaces the form rather than sitting above it: leaving the fields on
+   screen after a successful send invites a second copy of the same enquiry. */
+.contact-sent{
+  margin-top:var(--space-5); padding:var(--space-4);
+  border:1px solid var(--line); border-left:2px solid var(--orange);
+  background-color:rgba(255,255,255,0.02);
+  display:flex; flex-direction:column; align-items:flex-start; gap:var(--space-2);
+}
+.contact-sent-title{
+  font-family:var(--font-head); font-weight:700; font-size:var(--text-lead);
+  color:var(--white); margin:0;
+}
+.contact-sent-body{
+  color:rgba(255,255,255,0.7); line-height:var(--leading-body);
+  margin:0 0 var(--space-2);
+}
+/* While sending, the control reads as busy without going anywhere — moving or
+   resizing it under a pointer that just pressed it is how double submissions
+   happen. */
+.btn-outline[aria-busy="true"], .contact-form-shell[aria-busy="true"] ~ .panel-cta .btn-outline{
+  opacity:0.7; cursor:progress;
+}

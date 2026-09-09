@@ -7,6 +7,7 @@ import { DURATION, EASE_OUT_EXPO, SPRING } from '../motion'
 import OutlineButton, { OutlineLink } from './OutlineButton'
 import ProjectShowcase, { ProjectCover } from './ProjectShowcase'
 import ContactForm, { EMPTY_CONTACT, isContactComplete, type ContactValues } from './ContactForm'
+import { submitContact, type SubmitState } from '../utils/submitContact'
 
 /* The submit button sits outside the <form> element, below it in the panel's
    flow, so it is associated by id rather than by nesting. */
@@ -67,19 +68,37 @@ export default function PanelOverlay({
     [onNavigate],
   )
 
+  const [status, setStatus] = useState<SubmitState>('idle')
+  const [failure, setFailure] = useState<string | null>(null)
+
   const onSubmit = useCallback(
-    (event: FormEvent) => {
+    async (event: FormEvent) => {
       event.preventDefault()
       if (!complete) {
         setFocusRequest((n) => n + 1)
         return
       }
-      /* Nothing is sent yet: this form has never had a destination, and
-         inventing one — or showing a thank-you for a message that went
-         nowhere — would be worse than the silence. Wiring an endpoint here is
-         the one remaining step. */
+      // Guards the double-click and the impatient second press alike.
+      if (status === 'sending') return
+
+      setStatus('sending')
+      setFailure(null)
+      /* Read off the form itself rather than tracked in state: it is not the
+         visitor's data, and nothing on screen should ever reflect it. */
+      const gotcha = String(new FormData(event.currentTarget as HTMLFormElement).get('_gotcha') ?? '')
+      const result = await submitContact(contact, gotcha)
+      if (result.ok) {
+        setStatus('sent')
+        /* Cleared only now. Wiping it on submit would lose everything the
+           moment a request failed, which is exactly when someone least wants
+           to retype it. */
+        setContact(EMPTY_CONTACT)
+      } else {
+        setStatus('error')
+        setFailure(result.message ?? 'That did not send.')
+      }
     },
-    [complete],
+    [complete, contact, status],
   )
 
   const show = Boolean(planet) && (visible ?? true)
@@ -91,6 +110,8 @@ export default function PanelOverlay({
     // setActiveProjectId is stable in both the controlled and uncontrolled
     // cases; depending on it would reset the selection on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
+    setStatus('idle')
+    setFailure(null)
   }, [planet])
 
   const activeProject: Project | null =
@@ -298,18 +319,39 @@ export default function PanelOverlay({
               </motion.div>
             )}
 
-            {planet.panel.contact && (
+            {planet.panel.contact && status === 'sent' && (
+              /* Only reachable after a response that actually said ok — a
+                 thank-you for a message that went nowhere is worse than an
+                 error. role=status announces it without stealing focus. */
+              <div className="contact-sent" role="status">
+                <p className="contact-sent-title">That's sent.</p>
+                <p className="contact-sent-body">
+                  I reply within two working days, to the address you gave.
+                </p>
+                <OutlineButton onClick={() => setStatus('idle')}>Send another</OutlineButton>
+              </div>
+            )}
+
+            {planet.panel.contact && status !== 'sent' && (
               <form
                 id={CONTACT_FORM_ID}
                 className="contact-form-shell"
                 onSubmit={onSubmit}
                 noValidate
+                aria-busy={status === 'sending' || undefined}
               >
                 <ContactForm
                   values={contact}
                   onChange={setContact}
                   focusRequest={focusRequest}
                 />
+                {failure && (
+                  // Assertive, not polite: the visitor pressed a button and is
+                  // waiting to hear whether it worked.
+                  <p className="contact-error" role="alert">
+                    {failure}
+                  </p>
+                )}
               </form>
             )}
 
@@ -318,11 +360,12 @@ export default function PanelOverlay({
                 visitor is never offered a route to the page they are already
                 on. */}
             <div className="panel-cta">
-              {isContact ? (
+              {isContact && status === 'sent' ? null : isContact ? (
                 <OutlineButton
                   type="submit"
                   form={CONTACT_FORM_ID}
                   className={complete ? 'is-ready' : 'is-waiting'}
+                  aria-live="polite"
                   /* Deliberately not `disabled`. A disabled button cannot be
                      focused, so a keyboard or screen-reader user has no way to
                      reach it and find out what is missing — they are simply
@@ -330,7 +373,7 @@ export default function PanelOverlay({
                      instead, and pressing it moves focus to the first gap. */
                   aria-disabled={!complete || undefined}
                 >
-                  Submit
+                  {status === 'sending' ? 'Sending' : 'Submit'}
                 </OutlineButton>
               ) : (
                 <OutlineButton onClick={() => onNavigate?.('contact')}>

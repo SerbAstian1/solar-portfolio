@@ -128,6 +128,7 @@ export default function ContactForm({ values, onChange, focusRequest }: Props) {
         <label htmlFor="name">Your name</label>
         <input
           id="name"
+          name="name"
           type="text"
           autoComplete="name"
           placeholder="First and last"
@@ -142,6 +143,7 @@ export default function ContactForm({ values, onChange, focusRequest }: Props) {
         <label htmlFor="email">Email</label>
         <input
           id="email"
+          name="email"
           type="email"
           autoComplete="email"
           placeholder="you@company.com"
@@ -156,6 +158,7 @@ export default function ContactForm({ values, onChange, focusRequest }: Props) {
         <label htmlFor="projectType">What kind of project is it?</label>
         <select
           id="projectType"
+          name="projectType"
           value={values.projectType}
           aria-invalid={invalid('projectType') || undefined}
           ref={(el) => { refs.current.projectType = el }}
@@ -171,6 +174,7 @@ export default function ContactForm({ values, onChange, focusRequest }: Props) {
           <label htmlFor="budget">Budget</label>
           <select
             id="budget"
+          name="budget"
             value={values.budget}
             aria-invalid={invalid('budget') || undefined}
             ref={(el) => { refs.current.budget = el }}
@@ -185,6 +189,7 @@ export default function ContactForm({ values, onChange, focusRequest }: Props) {
           <label htmlFor="timeline">Timeline</label>
           <select
             id="timeline"
+          name="timeline"
             value={values.timeline}
             aria-invalid={invalid('timeline') || undefined}
             ref={(el) => { refs.current.timeline = el }}
@@ -207,6 +212,7 @@ export default function ContactForm({ values, onChange, focusRequest }: Props) {
         </p>
         <textarea
           id="brief"
+          name="brief"
           rows={5}
           aria-describedby="brief-hint"
           placeholder="A sentence or two is plenty to start."
@@ -216,6 +222,19 @@ export default function ContactForm({ values, onChange, focusRequest }: Props) {
           onChange={(e) => set('brief')(e.target.value)}
         />
       </div>
+
+      {/* Formspree discards a submission whose _gotcha field has anything in
+          it. It is hidden from sight and from assistive tech, and carries
+          tabindex -1 so a keyboard never lands in it — the only thing that
+          fills it is something reading the markup rather than the page. */}
+      <input
+        type="text"
+        name="_gotcha"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }}
+      />
     </div>
   )
 }

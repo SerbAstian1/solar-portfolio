@@ -182,10 +182,9 @@ exists. If the host has a setting for this, set it to return a real `404`.
 
 ## Known gaps
 
-- The contact form has no endpoint. It validates, reports completeness and
-  refuses to lie about having sent anything, but nothing is transmitted —
-  wiring Formspree, Netlify Forms or a `mailto:` is the remaining step. The
-  fields carry `id` but no `name`, which a native form POST would need.
+- Formspree's free tier caps submissions per month. Past it, enquiries are
+  rejected and the visitor is told so rather than being thanked — but they are
+  still lost, so the cap is worth watching.
 - Album cover projects show placeholder artwork, and their Spotify links point
   at real tracks that are not the clients' releases.
 - `og-cover.png` is referenced by the share tags but does not exist; it needs a
