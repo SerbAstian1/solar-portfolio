@@ -351,13 +351,25 @@
   margin:0 -48px var(--space-5); padding:28px 48px 14px;
   background:linear-gradient(to bottom, rgba(7,8,11,0.97) 62%, rgba(7,8,11,0));
 }
+/* Deliberately smaller than .btn-outline, which is not where this started:
+   when the buttons came down to 34px this control was left at 33px and 12px
+   type, so the dismiss action was fractionally *larger* than the primary one
+   next to it on the contact panel. Ranking a way out above the thing the
+   panel is for is the wrong instinct to hand a visitor.
+
+   The type steps to --text-eyebrow, the rung the site's other small caps
+   already use, and the padding tightens. Height is the axis that carries the
+   ranking here — width is mostly a function of whichever word the control is
+   showing ("Close ✕" or "← Back"), so it is not a reliable signal. It stays
+   above the 24px WCAG 2.5.8 floor with room to spare, and the lighter weight
+   and 0.75 alpha it already had do the rest of the subordinating. */
 .panel-close{
   cursor:pointer;
   display:inline-flex; align-items:center; gap:var(--space-2);
-  padding:7px 12px;
+  padding:7px 10px;
   background-color:transparent; border:1px solid var(--line);
   color:rgba(255,255,255,0.75);
-  font-family:var(--font-head); font-size:var(--text-micro);
+  font-family:var(--font-head); font-size:var(--text-eyebrow);
   text-transform:uppercase; letter-spacing:var(--tracking-label);
   transition:color var(--dur-hover) ease-out,
              border-color var(--dur-hover) ease-out,
