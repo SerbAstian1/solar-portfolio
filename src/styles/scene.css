@@ -879,3 +879,78 @@
 .btn-outline[aria-busy="true"], .contact-form-shell[aria-busy="true"] ~ .panel-cta .btn-outline{
   opacity:0.7; cursor:progress;
 }
+
+/* ===== About =====
+   The client marks lead, because recognition lands faster than explanation.
+   They are greyed and dimmed on purpose: they are references, not clients
+   being advertised, and at full strength two logos would outrank the writing
+   underneath them. Their artwork is white-on-black, which on this panel means
+   the tile disappears and only the mark is left. */
+.about{display:flex; flex-direction:column; gap:var(--space-5); margin-top:var(--space-5);}
+.about-clients-label{
+  font-family:var(--font-head); font-size:var(--text-eyebrow);
+  text-transform:uppercase; letter-spacing:var(--tracking-label);
+  color:var(--orange); margin-bottom:var(--space-3);
+}
+.about-clients ul{
+  list-style:none; display:flex; flex-wrap:wrap; align-items:center;
+  gap:var(--space-5);
+}
+.about-clients img{
+  height:42px; width:auto; display:block;
+  filter:grayscale(1) brightness(1.25);
+  opacity:0.45;
+  /* The artwork is white-on-black, and screen makes black transparent: black
+     screened over anything leaves it unchanged, while white stays white. The
+     tile's ground disappears and only the mark is left, which is what stops
+     these reading as two grey rectangles on the panel. It is also why they
+     could stay as flat WebP rather than needing cut-out PNGs with alpha. */
+  mix-blend-mode:screen;
+  transition:opacity var(--dur-hover) ease-out, filter var(--dur-hover) ease-out;
+}
+/* Comes up on approach — enough to read the mark properly if a visitor looks
+   for it, without competing while they are reading. */
+.about-clients img:hover{opacity:0.75; filter:grayscale(1) brightness(1.35);}
+
+.about-lead{display:flex; gap:var(--space-4); align-items:flex-start;}
+.about-portrait{
+  width:104px; height:104px; flex-shrink:0;
+  object-fit:cover; border:1px solid var(--line);
+}
+.about-story{display:flex; flex-direction:column; gap:var(--space-3);}
+.about-story p{color:rgba(255,255,255,0.75); line-height:var(--leading-body); margin:0;}
+@media (max-width:560px){
+  .about-lead{flex-direction:column;}
+  .about-portrait{width:88px; height:88px;}
+}
+
+.about-disciplines h3, .about-roles h3{
+  font-family:var(--font-head); font-size:var(--text-eyebrow);
+  text-transform:uppercase; letter-spacing:var(--tracking-label);
+  color:var(--orange); margin-bottom:var(--space-3);
+}
+.about-disciplines{border-top:1px solid var(--line); padding-top:var(--space-4);}
+.about-disciplines ul{
+  list-style:none; display:grid; gap:8px var(--space-4);
+  grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+}
+.about-disciplines li{
+  position:relative; padding-left:var(--space-4);
+  font-size:var(--text-small); color:rgba(255,255,255,0.7);
+}
+.about-disciplines li::before{content:"—"; position:absolute; left:0; color:var(--orange);}
+
+.about-roles{border-top:1px solid var(--line); padding-top:var(--space-4);
+  display:flex; flex-direction:column; gap:var(--space-4);}
+.about-role-org{
+  font-family:var(--font-head); font-weight:600; font-size:var(--text-body-sm);
+  color:var(--white); margin:0;
+}
+.about-role-title{
+  font-size:var(--text-eyebrow); text-transform:uppercase;
+  letter-spacing:var(--tracking-label); color:rgba(255,255,255,0.5); margin:2px 0 6px;
+}
+.about-role-note{
+  font-size:var(--text-micro); color:rgba(255,255,255,0.6);
+  line-height:var(--leading-body); margin:0;
+}

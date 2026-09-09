@@ -169,6 +169,69 @@ export default function PanelOverlay({
             <h2 id="panel-title">{planet.panel.title}</h2>
             {planet.panel.body && <p>{planet.panel.body}</p>}
 
+            {planet.panel.about && (
+              <section className="about" aria-label="About the studio">
+                {/* Marks first. Recognition lands faster than explanation, and
+                    a visitor deciding whether to read on is helped more by
+                    seeing who the work was for than by a paragraph saying so.
+                    Muted deliberately: these are references, not clients being
+                    advertised, and at full strength two logos would outrank
+                    the writing beneath them. */}
+                <div className="about-clients">
+                  <p className="about-clients-label">In-house for</p>
+                  <ul>
+                    {planet.panel.about.clients.map((client) => (
+                      <li key={client.name}>
+                        <img
+                          src={client.src}
+                          alt={client.name}
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="about-lead">
+                  {planet.panel.about.portrait && (
+                    <img
+                      className="about-portrait"
+                      src={planet.panel.about.portrait.src}
+                      alt={planet.panel.about.portrait.alt}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  )}
+                  <div className="about-story">
+                    {planet.panel.about.story.map((para) => (
+                      <p key={para.slice(0, 24)}>{para}</p>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="about-disciplines">
+                  <h3>What I make</h3>
+                  <ul>
+                    {planet.panel.about.disciplines.map((d) => (
+                      <li key={d}>{d}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="about-roles">
+                  <h3>In-house</h3>
+                  {planet.panel.about.roles.map((role) => (
+                    <article key={role.org}>
+                      <p className="about-role-org">{role.org}</p>
+                      <p className="about-role-title">{role.role}</p>
+                      <p className="about-role-note">{role.note}</p>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {planet.panel.services && (
               <section className="services" aria-label="Services">
                 {/* The two that carry the studio, given the room to say what

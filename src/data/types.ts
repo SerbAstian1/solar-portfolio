@@ -124,10 +124,34 @@ export interface ServiceSet {
   readonly secondary: readonly ServiceOffer[]
 }
 
+/** A place the work was done in-house rather than for a client at arm's length. */
+export interface AboutRole {
+  readonly org: string
+  readonly role: string
+  readonly note: string
+}
+
+/**
+ * The studio's own story, structured rather than left as one block of prose.
+ *
+ * Split because the parts are read differently: the client marks are scanned
+ * in a second, the disciplines are skimmed for a match, and only the story is
+ * actually read. One paragraph containing all three gets none of them read.
+ */
+export interface AboutContent {
+  /** Marks shown at the top, muted. Recognition before explanation. */
+  readonly clients: readonly { readonly name: string; readonly src: string }[]
+  readonly portrait?: { readonly src: string; readonly alt: string }
+  readonly story: readonly string[]
+  readonly disciplines: readonly string[]
+  readonly roles: readonly AboutRole[]
+}
+
 export interface PanelContent {
   readonly eyebrow: string
   readonly title: string
   readonly body?: string
+  readonly about?: AboutContent
   readonly services?: ServiceSet
   readonly tiers?: readonly PricingTier[]
   readonly projects?: readonly Project[]

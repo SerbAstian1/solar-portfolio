@@ -239,11 +239,42 @@ export const PLANETS: readonly PlanetContent[] = [
     id: 'about',
     label: 'About',
     cat: 'The Studio',
-    preview: 'How AW. works — strategy first, AI as reasoning backbone, craft always by hand.',
+    preview: 'Self-taught, built by persistence — brand systems, covers and web, in-house and for clients.',
     panel: {
       eyebrow: 'About',
-      title: 'Agency-depth thinking, one hand on every pixel.',
-      body: 'AW. is a Lagos-based independent creative studio. Strategy is resolved before any visual direction begins; a systematized reasoning process extends range and speed, but every mark is executed manually.',
+      title: 'Self-taught, and still teaching myself.',
+      body: 'AW. is an independent creative practice. Every mark is executed by hand, and every project is argued through before anything is drawn.',
+      about: {
+        clients: [
+          { name: 'Jutech Horizon Development Ltd.', src: '/about/client-jutech.webp' },
+          { name: 'REDMUR Digital', src: '/about/client-redmur.webp' },
+        ],
+        portrait: { src: '/about/portrait.webp', alt: 'Akagha Wisdom' },
+        story: [
+          'Nobody taught me this. There was no studio to come up in and no course that got me here — the craft came from building, breaking and rebuilding until the reasons good work holds together stopped being invisible.',
+          'That is slower than being trained, and it leaves you with something training does not: every rule I follow, I follow because I watched what happened when I did not. Persistence was the whole method, and it still is. Nothing ships here because it was the first idea.',
+        ],
+        disciplines: [
+          'Logos and marks',
+          'Brand identity systems',
+          'Album and cover artwork',
+          'Web design and build',
+          'Posters and campaign work',
+          'Social and content design',
+        ],
+        roles: [
+          {
+            org: 'Jutech Horizon Development Ltd.',
+            role: 'In-house designer',
+            note: 'Identity, guideline system and application across print, site and digital for a multidisciplinary construction and development company.',
+          },
+          {
+            org: 'REDMUR Digital',
+            role: 'In-house designer',
+            note: 'Mark, colour system and media assets for a mediatech company building tools that keep brands present online.',
+          },
+        ],
+      },
     },
   },
   {
