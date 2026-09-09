@@ -110,26 +110,36 @@ a{color:inherit; text-decoration:none;}
    them in one grid cell is what gets both. */
 .btn-outline{
   display:inline-flex; align-items:center; gap:var(--space-2);
-  font-family:var(--font-head); font-weight:600; font-size:var(--text-body-sm);
+  font-family:var(--font-head); font-weight:600; font-size:var(--text-caption);
   /* Set in caps, matching the close control, the eyebrows and the telemetry
      rail — the interface's whole label register. Uppercase loses the word-shape
      cue that lowercase gives, so it takes positive tracking to stay readable;
      --tracking-label is the value the rest of the site's caps already use. */
   text-transform:uppercase; letter-spacing:var(--tracking-label);
-  /* 40px tall, and 20px narrower than it was: the side padding went from 22px
-     to 12px, which takes 20px off the width of every button on the site.
-     
-     The width is where these were oversized — uppercase with open tracking is
-     already a wide setting, and the padding was adding to it. Height stays at
-     40. Taking 20px off that instead would leave a 20px control, under the
-     24x24 CSS-pixel minimum target size, and these sit over a 3D scene where
-     a missed press does something unintended rather than nothing.
-     
+  /* A second 20px off the width, on top of the 20px the padding already gave
+     up (22px a side, then 12px). Padding alone cannot pay for this round: 12px
+     a side is 24px in total, so taking 20px more from it would leave 2px and
+     the label would sit against its own border.
+
+     So the type steps down a rung instead, --text-body-sm to --text-caption,
+     15px to 13px. Both are rungs the scale already had; this invents no value.
+     That is a proportional cut rather than a fixed one, which is why the
+     padding still gives up 2px a side to put a floor under the short labels:
+     "Submit" loses about 13px on its own, "Back to the system" about 30, and
+     the site's seven button labels average almost exactly 20.
+
+     Height comes down 40 to 34 to match. 13px type inside a 40px box reads as
+     a label floating in a control rather than a control. 34 is chosen against
+     WCAG 2.5.8 rather than by eye: it clears the 24x24 CSS-pixel minimum by
+     10px, and these sit over a 3D scene where a missed press does something
+     unintended rather than nothing, so the margin is worth keeping. The 10px
+     chamfer is unchanged and still well inside a 34px edge.
+
      min-height rather than height so a label that wraps at a narrow viewport
      grows the control instead of spilling out of it; with border-box the
-     border is inside the 40, and align-items:center does the vertical
+     border is inside the 34, and align-items:center does the vertical
      centring so the padding only has to hold the sides. */
-  min-height:40px; padding:0 12px;
+  min-height:34px; padding:0 10px;
   border:1px solid var(--white); border-radius:0;
   background:transparent; color:var(--white); cursor:pointer;
   text-decoration:none;
