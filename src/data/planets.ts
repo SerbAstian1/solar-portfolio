@@ -248,6 +248,8 @@ export const PLANETS: readonly PlanetContent[] = [
         clients: [
           { name: 'Jutech Horizon Development Ltd.', src: '/about/client-jutech.webp' },
           { name: 'REDMUR Digital', src: '/about/client-redmur.webp' },
+          { name: 'Nextberries', src: '/about/client-nextberries.webp' },
+          { name: 'Campus Turkey', src: '/about/client-campusturkey.webp' },
         ],
         portrait: { src: '/about/portrait.webp', alt: 'Akagha Wisdom' },
         story: [

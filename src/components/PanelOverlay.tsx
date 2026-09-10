@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import type { PlanetContent, PricingTier, Project } from '../data/types'
+import type { AboutClient, PlanetContent, PricingTier, Project } from '../data/types'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 import { DURATION, EASE_OUT_EXPO, SPRING } from '../motion'
 import OutlineButton, { OutlineLink } from './OutlineButton'
@@ -12,6 +12,39 @@ import { submitContact, type SubmitState } from '../utils/submitContact'
 /* The submit button sits outside the <form> element, below it in the panel's
    flow, so it is associated by id rather than by nesting. */
 const CONTACT_FORM_ID = 'contact-form'
+
+/**
+ * One client mark in the marquee.
+ *
+ * The image is allowed to fail. A client is credited here the moment the work
+ * is real, and the artwork sometimes lands after that — a broken-image icon
+ * would turn a credit into a defect, so a mark with no file resolves to the
+ * name set as a wordmark instead. Nothing to maintain: once the WebP is in
+ * place the fallback never runs.
+ *
+ * `decorative` marks the duplicated track. Those copies exist for the loop,
+ * not for the reader, so they carry no alt text and the names are announced
+ * once rather than twice.
+ */
+function ClientMark({ client, decorative }: { client: AboutClient; decorative?: boolean }) {
+  const [missing, setMissing] = useState(false)
+
+  return (
+    <li>
+      {missing ? (
+        <span className="about-clients-wordmark">{client.name}</span>
+      ) : (
+        <img
+          src={client.src}
+          alt={decorative ? '' : client.name}
+          loading="lazy"
+          decoding="async"
+          onError={() => setMissing(true)}
+        />
+      )}
+    </li>
+  )
+}
 
 interface PanelOverlayProps {
   planet: PlanetContent | null
@@ -175,22 +208,30 @@ export default function PanelOverlay({
                     a visitor deciding whether to read on is helped more by
                     seeing who the work was for than by a paragraph saying so.
                     Muted deliberately: these are references, not clients being
-                    advertised, and at full strength two logos would outrank
-                    the writing beneath them. */}
+                    advertised, and at full strength a moving row of logos
+                    would outrank the writing beneath them. */}
                 <div className="about-clients">
                   <p className="about-clients-label">In-house for</p>
-                  <ul>
-                    {planet.panel.about.clients.map((client) => (
-                      <li key={client.name}>
-                        <img
-                          src={client.src}
-                          alt={client.name}
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      </li>
-                    ))}
-                  </ul>
+                  {/* Two identical tracks laid end to end and moved together.
+                      When each has travelled exactly its own width the pair is
+                      back where it started, so the loop closes with no seam
+                      and no jump — which is the whole reason the list is
+                      duplicated in the DOM rather than scrolled by script.
+                      The copy is hidden from assistive tech: the marquee is a
+                      way of fitting four marks into the width, not four more
+                      clients. */}
+                  <div className="about-clients-marquee">
+                    <ul className="about-clients-track">
+                      {planet.panel.about.clients.map((client) => (
+                        <ClientMark key={client.name} client={client} />
+                      ))}
+                    </ul>
+                    <ul className="about-clients-track" aria-hidden="true">
+                      {planet.panel.about.clients.map((client) => (
+                        <ClientMark key={client.name} client={client} decorative />
+                      ))}
+                    </ul>
+                  </div>
                 </div>
 
                 <div className="about-lead">

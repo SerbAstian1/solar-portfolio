@@ -138,9 +138,14 @@ export interface AboutRole {
  * in a second, the disciplines are skimmed for a match, and only the story is
  * actually read. One paragraph containing all three gets none of them read.
  */
+export interface AboutClient {
+  readonly name: string
+  readonly src: string
+}
+
 export interface AboutContent {
   /** Marks shown at the top, muted. Recognition before explanation. */
-  readonly clients: readonly { readonly name: string; readonly src: string }[]
+  readonly clients: readonly AboutClient[]
   readonly portrait?: { readonly src: string; readonly alt: string }
   readonly story: readonly string[]
   readonly disciplines: readonly string[]

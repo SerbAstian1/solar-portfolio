@@ -903,7 +903,7 @@
 /* ===== About =====
    The client marks lead, because recognition lands faster than explanation.
    They are greyed and dimmed on purpose: they are references, not clients
-   being advertised, and at full strength two logos would outrank the writing
+   being advertised, and at full strength four logos would outrank the writing
    underneath them. Their artwork is white-on-black, which on this panel means
    the tile disappears and only the mark is left. */
 .about{display:flex; flex-direction:column; gap:var(--space-5); margin-top:var(--space-5);}
@@ -916,26 +916,93 @@
   text-transform:uppercase; letter-spacing:var(--tracking-label);
   color:var(--orange); margin-bottom:var(--space-3);
 }
-.about-clients ul{
-  list-style:none; display:flex; flex-wrap:wrap; align-items:center;
-  justify-content:center;
-  gap:var(--space-5);
+
+/* The marks travel rather than wrap.
+   Two fitted on one line. Four do not, and a wrapped 2x2 block of logos reads
+   as a client roster being advertised — exactly what the muting was there to
+   prevent. Moving them holds the section to one line however many names it
+   grows to, and gives each mark the panel's full width to be read in.
+
+   The screen blend sits on this element rather than on each image, which is a
+   change forced by the animation. The track is transformed, and a transform
+   makes an isolated group: an image blending inside it would have the track's
+   own transparent backdrop to blend against instead of the panel, and the
+   black tiles would come back as rectangles. Here, the group is composited
+   first and then screened onto the panel — the same result the individual
+   images gave before. It is also why the edge fade is a mask rather than a
+   gradient overlay: an overlay would have to be painted in the panel's
+   colour, and the panel is translucent. */
+.about-clients-marquee{
+  display:flex; width:100%; overflow:hidden;
+  mix-blend-mode:screen;
+  -webkit-mask-image:linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+  mask-image:linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+}
+/* flex:0 0 auto on both the track and its items, or the flex algorithm solves
+   the overflow by compressing the marks to fit — and the overflow is the
+   thing being animated. */
+.about-clients-track{
+  list-style:none; display:flex; flex:0 0 auto; align-items:center; margin:0;
+  gap:var(--space-6); padding-right:var(--space-6);
+  animation:about-clients-marquee 20s linear infinite;
+  will-change:transform;
+}
+.about-clients-track > li{flex:0 0 auto;}
+/* One track's width is exactly the distance to the next copy of itself, so
+   −100% lands the pair back where it started and the loop has no seam. The
+   gap is repeated as trailing padding so the space across that join matches
+   every gap inside the track. */
+@keyframes about-clients-marquee{
+  from{transform:translateX(0);}
+  to{transform:translateX(-100%);}
+}
+/* Stops for a look. Someone who has put a pointer on a mark is trying to read
+   it, and the hover brightening below is no use on something sliding out from
+   under them. focus-within covers the keyboard equivalent. */
+.about-clients-marquee:hover .about-clients-track,
+.about-clients-marquee:focus-within .about-clients-track{
+  animation-play-state:paused;
 }
 .about-clients img{
-  height:42px; width:auto; display:block;
+  height:42px; width:auto; max-width:none; display:block;
   filter:grayscale(1) brightness(1.25);
   opacity:0.45;
-  /* The artwork is white-on-black, and screen makes black transparent: black
-     screened over anything leaves it unchanged, while white stays white. The
-     tile's ground disappears and only the mark is left, which is what stops
-     these reading as two grey rectangles on the panel. It is also why they
-     could stay as flat WebP rather than needing cut-out PNGs with alpha. */
-  mix-blend-mode:screen;
   transition:opacity var(--dur-hover) ease-out, filter var(--dur-hover) ease-out;
 }
 /* Comes up on approach — enough to read the mark properly if a visitor looks
    for it, without competing while they are reading. */
 .about-clients img:hover{opacity:0.75; filter:grayscale(1) brightness(1.35);}
+/* Stands in for a mark whose artwork is not in the repo yet. Set as a
+   wordmark rather than as body copy so it holds the line the real marks hold,
+   at the same weight and the same muting. */
+.about-clients-wordmark{
+  display:block; white-space:nowrap;
+  font-family:var(--font-head); font-size:var(--text-lead); font-weight:700;
+  text-transform:uppercase; letter-spacing:var(--tracking-label);
+  color:var(--white); opacity:0.45;
+  transition:opacity var(--dur-hover) ease-out;
+}
+.about-clients-wordmark:hover{opacity:0.75;}
+
+/* Motion off: back to a static, wrapped row.
+   Turned off by name rather than left to the global rule, which collapses
+   every animation to 0.001ms. For a finite animation that reads as "done"; for
+   an infinite marquee it is a track looping thousands of times a second with
+   the first copy parked off-screen — still visibly wrong, and burning a
+   compositor thread to stay that way. The duplicate goes with it, or the four
+   names read as eight. */
+@media(prefers-reduced-motion: reduce){
+  .about-clients-marquee{
+    overflow:visible; flex-wrap:wrap; justify-content:center;
+    -webkit-mask-image:none; mask-image:none;
+  }
+  .about-clients-track{
+    flex:1 1 auto; flex-wrap:wrap; justify-content:center;
+    gap:var(--space-5); padding-right:0;
+    animation:none; will-change:auto;
+  }
+  .about-clients-track[aria-hidden="true"]{display:none;}
+}
 
 /* The portrait owns a row and the story runs underneath it, rather than the
    two sharing a line. At 168px beside a column of text the photograph read as
