@@ -25,15 +25,16 @@ describe('contact completeness', () => {
     expect(isContactComplete(filled)).toBe(true)
   })
 
-  it('needs every single field', () => {
-    for (const key of Object.keys(filled) as (keyof ContactValues)[]) {
+  it('needs every required field', () => {
+    const required = (Object.keys(filled) as (keyof ContactValues)[]).filter((k) => k !== 'brief')
+    for (const key of required) {
       expect(isContactComplete({ ...filled, [key]: '' })).toBe(false)
     }
   })
 
   it('does not accept whitespace as an answer', () => {
     expect(isContactComplete({ ...filled, name: '   ' })).toBe(false)
-    expect(isContactComplete({ ...filled, brief: '                          ' })).toBe(false)
+    expect(isContactComplete({ ...filled, projectType: '   ' })).toBe(false)
   })
 
   it('treats "not sure yet" as a real answer', () => {
@@ -43,9 +44,19 @@ describe('contact completeness', () => {
     expect(isContactComplete({ ...filled, budget: 'Not sure yet' })).toBe(true)
   })
 
-  it('wants a brief with something in it', () => {
-    expect(isContactComplete({ ...filled, brief: 'hi' })).toBe(false)
-    expect(isContactComplete({ ...filled, brief: 'A'.repeat(20) })).toBe(true)
+  it('treats the brief as optional', () => {
+    // It used to demand twenty characters, which meant someone could answer
+    // every question on the form and still face a grey button with nothing
+    // saying the long field at the bottom was the hold-up.
+    expect(isContactComplete({ ...filled, brief: '' })).toBe(true)
+    expect(isContactComplete({ ...filled, brief: '   ' })).toBe(true)
+    expect(isContactComplete({ ...filled, brief: 'hi' })).toBe(true)
+  })
+
+  it('still will not go ready on the brief alone', () => {
+    // The inverse of the above, and the one that would actually cost an
+    // enquiry: a filled brief must not stand in for the address to reply to.
+    expect(isContactComplete({ ...EMPTY_CONTACT, brief: 'A'.repeat(400) })).toBe(false)
   })
 
   it('rejects a single-character name but accepts a short real one', () => {

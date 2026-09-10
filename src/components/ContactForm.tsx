@@ -32,36 +32,51 @@ export function looksLikeEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)
 }
 
-/** Every field carries information worth having, so every field is required.
- *  The two that a visitor might not know are answerable with "not sure yet"
- *  rather than left blank — see the option lists below. */
+/**
+ * What makes the submit read as ready.
+ *
+ * Five required answers, and the brief is not one of them. It used to demand
+ * twenty characters, which meant a visitor could answer every question on the
+ * form and still be looking at a grey button with nothing telling them the
+ * long field at the bottom was the hold-up. The five that remain are each a
+ * single decision, and the two a visitor might genuinely not know are
+ * answerable with "not sure yet" rather than left blank — see the option
+ * lists below.
+ *
+ * Nothing is lost by letting the brief through empty: name, address, kind of
+ * project, budget and timeline is already an enquiry worth replying to, and
+ * the reply can ask for the rest.
+ */
 export function isContactComplete(values: ContactValues): boolean {
   return (
     values.name.trim().length > 1 &&
     looksLikeEmail(values.email) &&
-    values.projectType !== '' &&
-    values.budget !== '' &&
-    values.timeline !== '' &&
-    values.brief.trim().length >= 20
+    /* trim() rather than a bare !== '' so this agrees with firstIncomplete,
+       which has always trimmed. The three come from <select>s whose values are
+       fixed, so a stray space cannot be typed — but the pricing cards write
+       these fields programmatically, and the two functions disagreeing would
+       mean a button that reads ready pointing at a field it thinks is empty. */
+    values.projectType.trim() !== '' &&
+    values.budget.trim() !== '' &&
+    values.timeline.trim() !== ''
   )
 }
 
 /** The order fields are checked in, so an incomplete submit sends the visitor
- *  to the first thing missing rather than to the last. */
+ *  to the first thing missing rather than to the last. The brief is absent
+ *  because an optional field can never be the thing that is missing. */
 const FIELD_ORDER: readonly (keyof ContactValues)[] = [
   'name',
   'email',
   'projectType',
   'budget',
   'timeline',
-  'brief',
 ]
 
 function firstIncomplete(values: ContactValues): keyof ContactValues | null {
   for (const key of FIELD_ORDER) {
     if (key === 'email' ? !looksLikeEmail(values.email) : values[key].trim() === '') return key
     if (key === 'name' && values.name.trim().length <= 1) return key
-    if (key === 'brief' && values.brief.trim().length < 20) return key
   }
   return null
 }
@@ -116,8 +131,8 @@ export default function ContactForm({ values, onChange, focusRequest }: Props) {
      finished being right. */
   const invalid = (key: keyof ContactValues) =>
     touched && firstIncomplete(values) !== null && (
-      key === 'email' ? !looksLikeEmail(values.email)
-      : key === 'brief' ? values.brief.trim().length < 20
+      key === 'brief' ? false
+      : key === 'email' ? !looksLikeEmail(values.email)
       : key === 'name' ? values.name.trim().length <= 1
       : values[key] === ''
     )
@@ -202,13 +217,21 @@ export default function ContactForm({ values, onChange, focusRequest }: Props) {
       </div>
 
       <div className="field">
-        <label htmlFor="brief">The project</label>
+        {/* The only optional field, so it is the only one carrying a tag.
+            Marking the five required ones instead would put a badge on almost
+            every label and leave the eye nothing to catch — the exception is
+            what is worth saying out loud. It sits inside the <label> so it is
+            announced with the field name rather than stranded beside it. */}
+        <label htmlFor="brief">
+          The project <span className="field-optional">Optional</span>
+        </label>
         {/* The hint does the work a placeholder cannot: placeholders vanish the
             moment someone starts typing, which is exactly when they would be
             useful. */}
         <p className="field-hint" id="brief-hint">
           What are you building, who is it for, and what does success look like?
-          Anything already decided — a name, a deadline, work you like — helps.
+          Anything already decided — a name, a deadline, work you like — helps,
+          but send it blank and I will ask.
         </p>
         <textarea
           id="brief"

@@ -761,6 +761,14 @@
   text-transform:uppercase; letter-spacing:var(--tracking-label);
   color:var(--orange);
 }
+/* The one optional field's tag. Deliberately not orange: the labels are
+   orange, and a tag in the same colour would read as part of the label rather
+   than as a note about it. Grey and lighter-weight puts it a level down,
+   which is where a piece of meta-information about a field belongs. */
+.field-optional{
+  color:rgba(255,255,255,0.4); font-weight:400;
+  letter-spacing:var(--tracking-sm); margin-left:2px;
+}
 /* Sits above the control, not inside it. A placeholder disappears the moment
    someone starts typing, which is exactly when the guidance is wanted. */
 .field-hint{
@@ -929,25 +937,27 @@
    for it, without competing while they are reading. */
 .about-clients img:hover{opacity:0.75; filter:grayscale(1) brightness(1.35);}
 
-.about-lead{display:flex; gap:var(--space-4); align-items:flex-start;}
-/* 168px, up from 104. The ceiling is the source, not the layout: the file is
-   440x440, so 168 still has a whole 2x display's worth of pixels behind it
-   (336) and nothing is being upscaled. Going much past 220 would start
-   inventing detail that is not in the image. */
+/* The portrait owns a row and the story runs underneath it, rather than the
+   two sharing a line. At 168px beside a column of text the photograph read as
+   an avatar attached to a paragraph; at full width it is the image the
+   section opens with. */
+.about-lead{display:flex; flex-direction:column; gap:var(--space-4);}
+/* Square because that is how the photograph is composed — the head sits in
+   the upper third with the shoulders squared at the bottom, and any landscape
+   crop takes the cut out of one or the other.
+
+   aspect-ratio plus object-fit rather than a height, so the box is defined by
+   the panel's width at any viewport and the image can never letterbox inside
+   it. */
 .about-portrait{
-  width:168px; height:168px; flex-shrink:0;
+  width:100%; aspect-ratio:1; display:block;
   object-fit:cover; border:1px solid var(--line);
 }
 .about-story{display:flex; flex-direction:column; gap:var(--space-3);}
 .about-story p{color:rgba(255,255,255,0.75); line-height:var(--leading-body); margin:0;}
-@media (max-width:560px){
-  /* Stacked, so the portrait is no longer competing with the text for width
-     and can stay large. Only the portrait centres — the story stays full
-     width and left-aligned, because centred body copy loses the straight left
-     edge the eye returns to on every line. */
-  .about-lead{flex-direction:column;}
-  .about-portrait{width:150px; height:150px; align-self:center;}
-}
+/* No narrow-viewport override any more. The old one existed to stack a row
+   and shrink the portrait; the layout is stacked and width-driven at every
+   size now, so the phone case falls out of the same two rules. */
 
 .about-disciplines h3, .about-roles h3{
   font-family:var(--font-head); font-size:var(--text-eyebrow);
