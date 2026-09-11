@@ -944,7 +944,7 @@
 .about-clients-track{
   list-style:none; display:flex; flex:0 0 auto; align-items:center; margin:0;
   gap:var(--space-6); padding-right:var(--space-6);
-  animation:about-clients-marquee 20s linear infinite;
+  animation:about-clients-marquee 30s linear infinite;
   will-change:transform;
 }
 .about-clients-track > li{flex:0 0 auto;}
@@ -964,7 +964,7 @@
   animation-play-state:paused;
 }
 .about-clients img{
-  height:42px; width:auto; max-width:none; display:block;
+  height:68px; width:auto; max-width:none; display:block;
   filter:grayscale(1) brightness(1.25);
   opacity:0.45;
   transition:opacity var(--dur-hover) ease-out, filter var(--dur-hover) ease-out;
@@ -972,6 +972,12 @@
 /* Comes up on approach — enough to read the mark properly if a visitor looks
    for it, without competing while they are reading. */
 .about-clients img:hover{opacity:0.75; filter:grayscale(1) brightness(1.35);}
+/* One slot is 204px wide at 68px tall, against a content box of roughly 311px
+   on a phone — a mark and a half in view, which reads as a mark being dragged
+   past rather than as a row of them. Stepped down so two are always in frame. */
+@media (max-width:560px){
+  .about-clients img{height:52px;}
+}
 /* Stands in for a mark whose artwork is not in the repo yet. Set as a
    wordmark rather than as body copy so it holds the line the real marks hold,
    at the same weight and the same muting. */
