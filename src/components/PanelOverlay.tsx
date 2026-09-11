@@ -209,9 +209,16 @@ export default function PanelOverlay({
                     seeing who the work was for than by a paragraph saying so.
                     Muted deliberately: these are references, not clients being
                     advertised, and at full strength a moving row of logos
-                    would outrank the writing beneath them. */}
+                    would outrank the writing beneath them.
+
+                    "Worked with" rather than "In-house for", which stopped
+                    being true when the row grew past Jutech and Redmur. Two of
+                    these four were in-house and two were not, so the label
+                    covering all of them has to be the one that describes the
+                    work rather than the arrangement. The In-house heading
+                    further down still names only the two it applies to. */}
                 <div className="about-clients">
-                  <p className="about-clients-label">In-house for</p>
+                  <p className="about-clients-label">Worked with</p>
                   {/* Two identical tracks laid end to end and moved together.
                       When each has travelled exactly its own width the pair is
                       back where it started, so the loop closes with no seam
