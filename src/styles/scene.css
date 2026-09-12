@@ -393,6 +393,10 @@
 .panel .eyebrow::after{
   content:""; flex:1; height:1px; background:var(--line);
 }
+/* The row's gap is set for the distance between the label and the rule that
+   trails it. Against the mark that reads as a gap rather than a pairing, so
+   the mark is pulled back to sit with the word it belongs to. */
+.panel .eyebrow .pixel-icon{margin-right:calc(var(--space-3) * -1 + 6px);}
 .panel h2{
   font-family:var(--font-head); font-weight:700; font-size:var(--text-heading);
   margin-bottom:var(--space-5); color:#fff;
@@ -843,9 +847,16 @@
   padding:var(--space-4);
 }
 .service-card h3{
+  display:flex; align-items:center; gap:var(--space-2);
   font-family:var(--font-head); font-weight:700; font-size:var(--text-lead);
   color:var(--white); margin-bottom:6px;
 }
+/* 24px, the larger of the two sizes. These two cards are the whole argument of
+   the Services panel — the copy above them says so in as many words — and a
+   12px mark beside 18px type would have annotated them rather than anchored
+   them. The heading is white and the mark stays orange, so the mark reads as
+   the card's tag and the name stays the thing being read. */
+.service-card h3 .pixel-icon{width:var(--icon-md); height:var(--icon-md);}
 .service-summary{
   color:rgba(255,255,255,0.72); line-height:var(--leading-body);
   margin-bottom:var(--space-3);

@@ -7,7 +7,7 @@ import { DURATION, EASE_OUT_EXPO, SPRING } from '../motion'
 import OutlineButton, { OutlineLink } from './OutlineButton'
 import ProjectShowcase, { ProjectCover } from './ProjectShowcase'
 import ContactForm, { EMPTY_CONTACT, isContactComplete, type ContactValues } from './ContactForm'
-import PixelIcon from './PixelIcon'
+import PixelIcon, { SECTION_ICONS } from './PixelIcon'
 import { submitContact, type SubmitState } from '../utils/submitContact'
 
 /* The submit button sits outside the <form> element, below it in the panel's
@@ -74,6 +74,9 @@ export default function PanelOverlay({
   const setActiveProjectId = onActiveProjectChange ?? setUncontrolledProjectId
   const panelRef = useRef<HTMLDivElement | null>(null)
   const isContact = Boolean(planet?.panel.contact)
+  /* Bound rather than read inline twice: indexing a Record<string, _> yields
+     `| undefined`, and a guard on one lookup does not narrow a second. */
+  const sectionIcon = planet ? SECTION_ICONS[planet.id] : undefined
   const [contact, setContact] = useState<ContactValues>(EMPTY_CONTACT)
   /* A counter rather than a boolean: two incomplete submits in a row have to
      be distinguishable, or the second one moves no focus. */
@@ -213,7 +216,16 @@ export default function PanelOverlay({
               </button>
             </div>
 
-            <div className="eyebrow">{planet.panel.eyebrow}</div>
+            {/* The same mark the mobile tile for this section carries, so a
+                visitor who arrived by tapping one meets it again on landing.
+                On desktop it is the panel's only tie back to the planet that
+                opened it — the scene is behind the panel, not in it, and the
+                eyebrow was the one place carrying the section's identity in
+                text alone. */}
+            <div className="eyebrow">
+              {sectionIcon && <PixelIcon name={sectionIcon} />}
+              {planet.panel.eyebrow}
+            </div>
             <h2 id="panel-title">{planet.panel.title}</h2>
             {planet.panel.body && <p>{planet.panel.body}</p>}
 
@@ -302,7 +314,15 @@ export default function PanelOverlay({
                 <div className="service-primary">
                   {planet.panel.services.primary.map((service) => (
                     <article className="service-card" key={service.name}>
-                      <h3>{service.name}</h3>
+                      {/* Only the two primary services carry a mark. The four
+                          below them are a compact list where an icon per row
+                          would be the same noise the em-dash markers were
+                          rejected for — and marking both sets equally would
+                          undo the ranking this section exists to make. */}
+                      <h3>
+                        {service.icon && <PixelIcon name={service.icon} />}
+                        {service.name}
+                      </h3>
                       <p className="service-summary">{service.summary}</p>
                       {service.includes && (
                         <ul className="service-includes">

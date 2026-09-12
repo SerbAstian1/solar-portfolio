@@ -1,3 +1,5 @@
+import type { PixelIconName } from '../components/PixelIcon'
+
 /** Content shapes for the five sections. Presentation copy only — orbital
  *  elements live in src/orbital/elements.ts, keyed by the same ids. */
 
@@ -114,6 +116,16 @@ export interface PricingTier {
 export interface ServiceOffer {
   readonly name: string
   readonly summary: string
+  /**
+   * The mark shown on the card. Declared here rather than looked up from the
+   * name in the component: matching on 'Album & cover artwork' would break the
+   * moment the copy was reworded, and silently — the card would simply lose
+   * its icon. Type-only import, so the data layer gains no runtime dependency
+   * on a component.
+   *
+   * Primary services only. A secondary service is a line in a list.
+   */
+  readonly icon?: PixelIconName
   /** What a client actually receives. Primary services only — a secondary
    *  service is a line item, not a programme of work. */
   readonly includes?: readonly string[]

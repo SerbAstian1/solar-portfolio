@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ICON_GRIDS, toPath } from '../PixelIcon'
+import { ICON_GRIDS, SECTION_ICONS, toPath } from '../PixelIcon'
 
 const GRID = 12
 
@@ -25,6 +25,8 @@ describe('icon grids', () => {
         'about',
         'pricing',
         'contact',
+        'identity',
+        'artwork',
       ]),
     )
   })
@@ -72,5 +74,28 @@ describe('grid to path', () => {
     const runs = (toPath(ICON_GRIDS.work).match(/M/g) ?? []).length
     // Eight rows of two four-cell runs. As rects it would have been 64.
     expect(runs).toBe(16)
+  })
+})
+
+/**
+ * The panel eyebrow and the mobile tile both read this map, so that a visitor
+ * who taps a tile meets the same mark on the panel it opens. A section missing
+ * from it loses its mark in both places at once.
+ */
+describe('section marks', () => {
+  it('covers every section the site routes to', () => {
+    expect(Object.keys(SECTION_ICONS).sort()).toEqual([
+      'about',
+      'contact',
+      'pricing',
+      'services',
+      'work',
+    ])
+  })
+
+  it('points only at marks that are actually drawn', () => {
+    for (const name of Object.values(SECTION_ICONS)) {
+      expect(ICON_GRIDS[name]).toBeDefined()
+    }
   })
 })

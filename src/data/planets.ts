@@ -191,6 +191,7 @@ export const PLANETS: readonly PlanetContent[] = [
         primary: [
           {
             name: 'Brand identity',
+            icon: 'identity',
             summary:
               'A complete identity and the document that keeps it intact — mark, colour, type, and how all of it behaves once other people are using it.',
             includes: [
@@ -203,6 +204,7 @@ export const PLANETS: readonly PlanetContent[] = [
           },
           {
             name: 'Album & cover artwork',
+            icon: 'artwork',
             summary:
               'Cover art for a release, built to survive the places it will actually be seen — a thumbnail in a feed as readily as a printed sleeve.',
             includes: [

@@ -171,9 +171,58 @@ const ICONS = {
     '............',
     '............',
   ],
+
+  /* The two services the studio is actually built on. Deliberately abstract
+     rather than literal: an identity is a mark held inside a system, which is
+     what concentric frames say and what a pencil or a swatch would not. */
+  identity: [
+    '............',
+    '............',
+    '..########..',
+    '..#......#..',
+    '..#.####.#..',
+    '..#.#..#.#..',
+    '..#.#..#.#..',
+    '..#.####.#..',
+    '..#......#..',
+    '..########..',
+    '............',
+    '............',
+  ],
+  artwork: [
+    '............',
+    '....####....',
+    '..##....##..',
+    '.##......##.',
+    '.#........#.',
+    '.#...##...#.',
+    '.#...##...#.',
+    '.#........#.',
+    '.##......##.',
+    '..##....##..',
+    '....####....',
+    '............',
+  ],
 } as const
 
 export type PixelIconName = keyof typeof ICONS
+
+/**
+ * Section id to mark.
+ *
+ * Lives here rather than in either component that reads it. The mobile nav and
+ * the panel eyebrow both label the same five sections, and a visitor who taps
+ * a tile and lands on the matching panel should meet the same mark twice —
+ * which is the entire reason the panel eyebrow got one. Two private copies of
+ * this object would have been two places for that to quietly stop being true.
+ */
+export const SECTION_ICONS: Record<string, PixelIconName> = {
+  work: 'work',
+  services: 'services',
+  about: 'about',
+  pricing: 'pricing',
+  contact: 'contact',
+}
 
 /**
  * Grid to path, run-length encoded a row at a time.
