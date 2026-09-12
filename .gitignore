@@ -20,3 +20,9 @@ coverage/
 
 # Generated cursor art payload (regenerate with npm run cursor)
 scripts/.cursor-data.json
+
+# Master artwork. Kept on disk next to the project so the originals are findable,
+# deliberately untracked: these are 2-4MB each against the ~100KB WebP the site
+# actually serves, and git would carry every version of them forever. Anything
+# here that the site needs has an optimised copy under public/projects/.
+ref/source-art/

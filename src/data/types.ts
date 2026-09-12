@@ -45,11 +45,26 @@ export interface BrandApplication {
   readonly src?: string
 }
 
+/**
+ * One face of a release's artwork.
+ *
+ * An array of these rather than a single image, because a release is not
+ * always one picture: a single is a front and nothing else, while an EP has a
+ * tracklist that is as much a designed surface as the cover and is the half
+ * that actually tells you what you are about to hear. Modelling the front as
+ * special and everything else as extra would have made the second face read as
+ * an afterthought in the data as well as on the page.
+ */
+export interface CoverFace {
+  readonly title: string
+  /** Path under /public. Omit until the file exists; the tile stands in. */
+  readonly src?: string
+}
+
 export interface ProjectDetail {
   readonly summary: string
   readonly role: string
   readonly tools: readonly string[]
-  readonly previewImages?: readonly { readonly title: string; readonly caption: string }[]
   readonly behanceUrl?: string
   readonly highlights: readonly string[]
   /** The interactive showcase. Each absent section simply is not rendered. */
@@ -65,7 +80,7 @@ export interface ProjectDetail {
    * is deliberately not a section: there is nothing underneath it to reveal,
    * and a card that opens onto more of the same is a worse card.
    */
-  readonly cover?: { readonly title: string; readonly src?: string }
+  readonly cover?: readonly CoverFace[]
   /**
    * Where to hear it. Rendered whenever it is present.
    *

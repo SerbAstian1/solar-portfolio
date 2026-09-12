@@ -24,17 +24,46 @@ describe('the project deck', () => {
 })
 
 describe('album cover projects', () => {
-  const albums = PROJECTS.filter((p) => p.detail.spotifyUrl)
+  /* Selected on the cover itself, not on a Spotify link.
+     This filtered on spotifyUrl, which held only while the two cover projects
+     here were placeholders carrying an example track id. Real releases arrived
+     without links to hand, every cover project vanished from the filter, and
+     the suite reported that cover projects had stopped existing — a true
+     statement about the filter and a false one about the data. The cover is
+     what makes a cover project. */
+  const albums = PROJECTS.filter((p) => p.detail.cover)
 
   it('exist', () => {
     expect(albums.length).toBeGreaterThan(0)
+  })
+
+  it('gives every face a title, and artwork where it claims one', () => {
+    // A face with no title renders a blank switch option, and the caption
+    // beneath the tile goes empty with it.
+    for (const project of albums) {
+      expect(project.detail.cover!.length).toBeGreaterThan(0)
+      for (const face of project.detail.cover!) {
+        expect(face.title.trim()).not.toBe('')
+        if (face.src !== undefined) expect(face.src.startsWith('/')).toBe(true)
+      }
+    }
+  })
+
+  it('keeps face titles distinct within a release', () => {
+    // They key the switch buttons and label them, so a repeat is both a React
+    // key collision and two buttons a visitor cannot tell apart.
+    for (const project of albums) {
+      const titles = project.detail.cover!.map((f) => f.title)
+      expect(new Set(titles).size).toBe(titles.length)
+    }
   })
 
   it('points every Spotify link at Spotify, over https', () => {
     // The link is rendered wherever the field is present, so a mistyped host
     // would ship a button that says Spotify and goes somewhere else.
     for (const project of albums) {
-      const url = new URL(project.detail.spotifyUrl!)
+      if (!project.detail.spotifyUrl) continue
+      const url = new URL(project.detail.spotifyUrl)
       expect(url.protocol).toBe('https:')
       expect(['open.spotify.com', 'spotify.com']).toContain(url.hostname)
     }

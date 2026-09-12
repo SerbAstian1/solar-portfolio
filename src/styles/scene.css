@@ -688,6 +688,11 @@
   display:flex; flex-direction:column; gap:8px;
   max-width:min(420px,100%); margin-top:var(--space-5);
 }
+/* The face switch sits above its own artwork rather than in the showcase's
+   control row, because a cover project has no showcase — the tile is the whole
+   section. Left-aligned with the tile it governs, and given the row's own
+   bottom margin so it does not crowd the top edge of the artwork. */
+.project-cover .showcase-controls{margin:0 0 4px;}
 .project-cover figcaption{
   font-size:var(--text-micro); color:rgba(255,255,255,0.55);
   text-transform:uppercase; letter-spacing:var(--tracking-label);

@@ -1,12 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import type {
-  BrandApplication,
-  BrandColor,
-  BrandFont,
-  BrandLogo,
-  ProjectDetail,
-} from '../data/types'
+import type { BrandApplication, BrandColor, BrandFont, BrandLogo, CoverFace, ProjectDetail } from '../data/types'
 import { inkContrast, normaliseHex, readableInk } from '../utils/color'
 import '../motion/logo/logo-reveal.css'
 
@@ -100,15 +94,47 @@ function AssetTile({
  *
  * Shares AssetTile with the showcase so a missing or broken file degrades the
  * same way here as everywhere else.
+ *
+ * Faces switch in place rather than sitting side by side. Two 1:1 tiles in a
+ * 420px column are 200px each, and a tracklist at 200px is a picture of a
+ * tracklist rather than one you can read — the track names are the point of
+ * that face. Switching keeps whichever face you are looking at at full size,
+ * and it reuses the control the logo section already established for exactly
+ * this ("same tile, change what is on it"), so the interaction is one the
+ * visitor has met before.
  */
-export function ProjectCover({ cover }: { cover: { title: string; src?: string } }) {
+export function ProjectCover({ cover }: { cover: readonly CoverFace[] }) {
+  const [active, setActive] = useState(0)
+  const face = cover[active] ?? cover[0]
+  if (!face) return null
+
   return (
     <figure className="project-cover">
+      {/* A single has one face and gets no control. A toggle offering one
+          option is a label pretending to be a choice. */}
+      {cover.length > 1 && (
+        <div className="showcase-controls">
+          <span className="showcase-hint">Face</span>
+          <div className="ground-toggle" role="group" aria-label="Cover face">
+            {cover.map((f, i) => (
+              <button
+                key={f.title}
+                type="button"
+                className={`ground-option ${active === i ? 'is-active' : ''}`}
+                aria-pressed={active === i}
+                onClick={() => setActive(i)}
+              >
+                {f.title}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       {/* No label inside the tile: the caption below names it in both states,
           and printing it twice reads as a mistake while the artwork is still
           a placeholder. */}
-      <AssetTile src={cover.src} label={cover.title} ratio="1 / 1" fit="cover" showLabel={false} />
-      <figcaption>{cover.title}</figcaption>
+      <AssetTile src={face.src} label={face.title} ratio="1 / 1" fit="cover" showLabel={false} />
+      <figcaption>{face.title}</figcaption>
     </figure>
   )
 }
