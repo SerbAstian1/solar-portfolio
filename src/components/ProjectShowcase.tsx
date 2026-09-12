@@ -261,7 +261,16 @@ function ApplicationSection({ items }: { items: readonly BrandApplication[] }) {
     <div className="showcase-grid is-applications">
       {items.map((item) => (
         <figure key={item.title} className="showcase-item">
-          <AssetTile src={item.src} label={item.title} ratio="3 / 2" fit="cover" />
+          {/* contain, not cover.
+              These are collages, and their aspect ratios run from 0.84 to 2.45
+              against a 3:2 tile. Cover was resolving that by cutting: the
+              REDMUR wordmark lost its last two letters on one tile and its
+              first on another, and the portrait identity board showed a
+              middle band of itself. A mockup sheet cropped mid-wordmark
+              misrepresents the work it is there to show, which is worse than
+              a letterbox. The tile ground is within a few percent of the
+              panel's, so the bands read as spacing rather than as frame. */}
+          <AssetTile src={item.src} label={item.title} ratio="3 / 2" fit="contain" />
           <figcaption>
             <span className="application-title">{item.title}</span>
             {item.caption && <span className="application-caption">{item.caption}</span>}
