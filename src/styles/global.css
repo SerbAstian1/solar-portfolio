@@ -108,6 +108,36 @@ a{color:inherit; text-decoration:none;}
    things have to be true at once here: the box is measured against the final
    string, and the animating glyphs are painted in the same place. Stacking
    them in one grid cell is what gets both. */
+/* ===== Pixel icons =====
+   Drawn on a 12x12 grid, so the only sizes that render truly crisp are whole
+   multiples of 12 — at 12px each cell is exactly 1 device pixel, at 24px
+   exactly 2. Anything between (an em-derived 17px, say) leaves some cells a
+   pixel wider than their neighbours and the mark reads as slightly drunk.
+   These two sizes are the system; there is deliberately no third.
+
+   Sized in px rather than em for the same reason: em would tie the grid to a
+   type scale that has values like 0.6875rem in it, and 11px across 12 cells is
+   less than a pixel each. The icons would survive as a smear. */
+:root{
+  --icon-sm:12px;
+  --icon-md:24px;
+}
+.pixel-icon{
+  display:block; flex:0 0 auto;
+  width:var(--icon-sm); height:var(--icon-sm);
+  /* The brand orange is the icon colour by default. Where an icon belongs to
+     text that is already carrying its own colour, it inherits instead — see
+     the error state below. */
+  color:var(--orange);
+}
+
+/* The external-link mark rides a shade below its label. It is a warning about
+   where the link goes, not part of what the link says, and at full strength it
+   competed with the text it was qualifying. */
+.btn-outline.is-external .btn-external-mark{opacity:0.7;}
+.btn-outline:hover .btn-external-mark,
+.btn-outline:focus-visible .btn-external-mark{opacity:1;}
+
 .btn-outline{
   display:inline-flex; align-items:center; gap:var(--space-2);
   font-family:var(--font-head); font-weight:600; font-size:var(--text-caption);

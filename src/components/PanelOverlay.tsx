@@ -7,6 +7,7 @@ import { DURATION, EASE_OUT_EXPO, SPRING } from '../motion'
 import OutlineButton, { OutlineLink } from './OutlineButton'
 import ProjectShowcase, { ProjectCover } from './ProjectShowcase'
 import ContactForm, { EMPTY_CONTACT, isContactComplete, type ContactValues } from './ContactForm'
+import PixelIcon from './PixelIcon'
 import { submitContact, type SubmitState } from '../utils/submitContact'
 
 /* The submit button sits outside the <form> element, below it in the panel's
@@ -194,7 +195,21 @@ export default function PanelOverlay({
                 aria-label={activeProject ? 'Back to projects' : 'Close panel'}
                 onClick={activeProject ? () => setActiveProjectId(null) : onClose}
               >
-                {activeProject ? '← Back' : 'Close ✕'}
+                {/* Was '← Back' and 'Close ✕'. Both were text characters
+                    borrowed from whatever font resolved them, which put the
+                    site's most-pressed control at the mercy of a fallback —
+                    and ✕ in particular lands at a different weight and optical
+                    size on every platform. Drawn marks render identically
+                    everywhere and sit on the same grid as the rest. */}
+                {activeProject ? (
+                  <>
+                    <PixelIcon name="back" /> Back
+                  </>
+                ) : (
+                  <>
+                    Close <PixelIcon name="close" />
+                  </>
+                )}
               </button>
             </div>
 
@@ -435,7 +450,9 @@ export default function PanelOverlay({
                  thank-you for a message that went nowhere is worse than an
                  error. role=status announces it without stealing focus. */
               <div className="contact-sent" role="status">
-                <p className="contact-sent-title">That's sent.</p>
+                <p className="contact-sent-title">
+                  <PixelIcon name="sent" /> That&apos;s sent.
+                </p>
                 <p className="contact-sent-body">
                   I reply within two working days, to the address you gave.
                 </p>
@@ -460,7 +477,7 @@ export default function PanelOverlay({
                   // Assertive, not polite: the visitor pressed a button and is
                   // waiting to hear whether it worked.
                   <p className="contact-error" role="alert">
-                    {failure}
+                    <PixelIcon name="alert" /> {failure}
                   </p>
                 )}
               </form>

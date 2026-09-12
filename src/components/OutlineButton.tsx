@@ -1,5 +1,6 @@
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'react'
 import { useScramble } from '../hooks/useScramble'
+import PixelIcon from './PixelIcon'
 
 /**
  * The label, one fixed-width cell per character.
@@ -152,14 +153,26 @@ export function OutlineLink({
     onBlur,
   })
 
+  /* A link that leaves the site should say so before it is pressed, not after
+     a tab has already opened. Handled here rather than at each call site for
+     two reasons: it cannot be forgotten on the next external link added, and
+     the marker has to sit outside ScrambleLabel — `label` is read from
+     `children` being a string, so passing an icon alongside the text would
+     silently kill both the scramble and the aria-label.
+
+     The icon is the visual half. The sentence appended to the label is the
+     half a screen reader gets, since the mark itself is decorative. */
+  const isExternal = props.target === '_blank'
+
   return (
     <a
-      className={`btn-outline ${className}`.trim()}
-      aria-label={label || undefined}
+      className={`btn-outline ${isExternal ? 'is-external' : ''} ${className}`.trim()}
+      aria-label={label ? (isExternal ? `${label} (opens in a new tab)` : label) : undefined}
       {...triggers}
       {...props}
     >
       {label ? <ScrambleLabel display={display} label={label} /> : children}
+      {isExternal && <PixelIcon name="external" className="btn-external-mark" />}
     </a>
   )
 }

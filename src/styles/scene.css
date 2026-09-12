@@ -505,6 +505,12 @@
 }
 .mobile-tile:hover, .mobile-tile:focus-visible{border-color:var(--orange); background-color:rgba(255,255,255,0.04);}
 .mobile-tile:active{background-color:rgba(255,255,255,0.07);}
+/* 24px, which is two device pixels per cell — the mark is the tile's
+   identity rather than an annotation on it, and at 12px it read as a bullet.
+   Sits above the category label rather than beside it: the tile is a column,
+   and threading an icon into the first text row would have meant rebuilding
+   the layout to gain nothing. */
+.mobile-tile-mark{width:var(--icon-md); height:var(--icon-md); margin-bottom:2px;}
 .mobile-tile .cat{font-size:var(--text-eyebrow); text-transform:uppercase; letter-spacing:var(--tracking-label); color:var(--orange);}
 .mobile-tile h5{font-family:var(--font-head); font-size:var(--text-card);}
 .mobile-tile p{font-size:var(--text-caption); color:rgba(255,255,255,0.65);}
@@ -870,13 +876,24 @@
 }
 
 /* ===== Contact submission states ===== */
+/* The mark matters more here than anywhere else on the page. This message was
+   distinguishable from the success message by colour alone, which fails anyone
+   who cannot separate the two — and on this site both states are a shade of
+   orange, so it was thin even for those who can. A bar-and-dot against a tick
+   is a difference in shape, readable before the words are. */
 .contact-error{
+  display:flex; align-items:flex-start; gap:var(--space-2);
   margin-top:var(--space-3); padding:11px 13px;
   border:1px solid #F5854F; border-left-width:2px;
   background-color:rgba(235,94,40,0.08);
   font-size:var(--text-micro); color:#F5854F;
   line-height:var(--leading-body);
 }
+/* Inherits the error's own ink rather than the brand orange, so the mark and
+   the sentence it introduces read as one object. The nudge aligns it to the
+   first line's cap height instead of the line box, which at this size is a
+   visible two pixels out. */
+.contact-error .pixel-icon{color:inherit; margin-top:1px;}
 /* Replaces the form rather than sitting above it: leaving the fields on
    screen after a successful send invites a second copy of the same enquiry. */
 .contact-sent{
@@ -886,9 +903,14 @@
   display:flex; flex-direction:column; align-items:flex-start; gap:var(--space-2);
 }
 .contact-sent-title{
+  display:flex; align-items:center; gap:var(--space-2);
   font-family:var(--font-head); font-weight:700; font-size:var(--text-lead);
   color:var(--white); margin:0;
 }
+/* The one icon on the site that gets the larger size outside the mobile nav.
+   This is the answer to "did it send?", and a 12px tick beside 18px type reads
+   as punctuation rather than as confirmation. */
+.contact-sent-title .pixel-icon{width:var(--icon-md); height:var(--icon-md);}
 .contact-sent-body{
   color:rgba(255,255,255,0.7); line-height:var(--leading-body);
   margin:0 0 var(--space-2);
