@@ -138,6 +138,7 @@ export const PLANETS: readonly PlanetContent[] = [
             role: 'Cover art direction, colour grade, title treatment and artist mark.',
             tools: ['Photo composite', 'Duotone grade', 'Title treatment', 'Release crops'],
             cover: [{ title: 'Cover', src: '/projects/licha/cover.webp' }],
+            spotifyUrl: 'https://open.spotify.com/track/7gx5b5km9LkRseA4OYl5Eu',
             highlights: [
               'Single-hue red grade across the whole frame, so nothing competes with the mood',
               'Title formed out of the cloud rather than set on top of the picture',
@@ -166,6 +167,10 @@ export const PLANETS: readonly PlanetContent[] = [
               { title: 'Front', src: '/projects/who-i-become/cover.webp' },
               { title: 'Tracklist', src: '/projects/who-i-become/tracklist.webp' },
             ],
+            /* The album, not a track off it. The tracklist face names four,
+               and a link that opened one of them would contradict the artwork
+               sitting directly above it. */
+            spotifyUrl: 'https://open.spotify.com/album/2OazRvHVkWkELVVc0SmJUd',
             highlights: [
               'Black and white throughout — no palette to be remembered by, so the portrait has to carry it',
               'Title scratched into the frame by hand rather than typeset over it',
