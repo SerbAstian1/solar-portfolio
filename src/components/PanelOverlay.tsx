@@ -418,9 +418,14 @@ export default function PanelOverlay({
 
                 {/* The work comes first and takes the room. Everything below it
                     is reference the client reads once, so it is set small and
-                    kept out of the way of the thing they came to look at. */}
+                    kept out of the way of the thing they came to look at. The
+                    Spotify link goes with the cover for the same reason: it is
+                    the work, not the reference. */}
                 {activeProject.detail.cover && (
-                  <ProjectCover cover={activeProject.detail.cover} />
+                  <ProjectCover
+                    cover={activeProject.detail.cover}
+                    spotifyUrl={activeProject.detail.spotifyUrl}
+                  />
                 )}
 
                 <ProjectShowcase detail={activeProject.detail} />
@@ -440,26 +445,15 @@ export default function PanelOverlay({
                   </div>
                 </dl>
 
-                {(activeProject.detail.spotifyUrl || activeProject.detail.behanceUrl) && (
+                {activeProject.detail.behanceUrl && (
                   <div className="project-detail-actions">
-                    {activeProject.detail.spotifyUrl && (
-                      <OutlineLink
-                        href={activeProject.detail.spotifyUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Listen on Spotify
-                      </OutlineLink>
-                    )}
-                    {activeProject.detail.behanceUrl && (
-                      <OutlineLink
-                        href={activeProject.detail.behanceUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Preview on Behance
-                      </OutlineLink>
-                    )}
+                    <OutlineLink
+                      href={activeProject.detail.behanceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Preview on Behance
+                    </OutlineLink>
                   </div>
                 )}
               </motion.div>

@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { BrandApplication, BrandColor, BrandFont, BrandLogo, CoverFace, ProjectDetail } from '../data/types'
 import { inkContrast, normaliseHex, readableInk } from '../utils/color'
+import { OutlineLink } from './OutlineButton'
 import '../motion/logo/logo-reveal.css'
 
 type SectionId = 'logos' | 'palette' | 'fonts' | 'applications'
@@ -103,7 +104,13 @@ function AssetTile({
  * this ("same tile, change what is on it"), so the interaction is one the
  * visitor has met before.
  */
-export function ProjectCover({ cover }: { cover: readonly CoverFace[] }) {
+export function ProjectCover({
+  cover,
+  spotifyUrl,
+}: {
+  cover: readonly CoverFace[]
+  spotifyUrl?: string
+}) {
   const [active, setActive] = useState(0)
   const face = cover[active] ?? cover[0]
   if (!face) return null
@@ -134,7 +141,20 @@ export function ProjectCover({ cover }: { cover: readonly CoverFace[] }) {
           and printing it twice reads as a mistake while the artwork is still
           a placeholder. */}
       <AssetTile src={face.src} label={face.title} ratio="1 / 1" fit="cover" showLabel={false} />
-      <figcaption>{face.title}</figcaption>
+      {/* The listen link lives on the caption line, not in the reference row
+          at the foot of the panel. For a cover the record is the point — the
+          artwork exists because the music does — so hearing it is the primary
+          action, and it sits with the work rather than under Role and Tools
+          with the things a client reads once. A caption that says what this
+          is and where to hear it is still a caption. */}
+      <figcaption>
+        <span>{face.title}</span>
+        {spotifyUrl && (
+          <OutlineLink icon="spotify" href={spotifyUrl} target="_blank" rel="noreferrer">
+            Listen on Spotify
+          </OutlineLink>
+        )}
+      </figcaption>
     </figure>
   )
 }

@@ -185,6 +185,10 @@
   flex-direction:column;
   gap:10px;
 }
+/* The reference row at the foot of the panel: outbound links that preview
+   the work elsewhere. Wraps rather than overflows should a second one ever
+   join it. The Spotify link used to sit here too, and now rides the cover's
+   caption line instead — see .project-cover figcaption. */
 .project-detail-actions{
   display:flex;
   flex-wrap:wrap;
@@ -693,13 +697,18 @@
    section. Left-aligned with the tile it governs, and given the row's own
    bottom margin so it does not crowd the top edge of the artwork. */
 .project-cover .showcase-controls{margin:0 0 4px;}
+/* The caption is a row: the face's name at the left, and at the right the
+   link to hear the record, when there is one. Both are set in the same caps
+   register, so the line reads as one label with an action at its end rather
+   than as a caption with a button dropped beside it. Wraps at a width where
+   the two cannot share a line, name first. */
 .project-cover figcaption{
+  display:flex; align-items:center; justify-content:space-between;
+  flex-wrap:wrap; gap:var(--space-2) var(--space-3);
   font-size:var(--text-micro); color:rgba(255,255,255,0.55);
   text-transform:uppercase; letter-spacing:var(--tracking-label);
   font-family:var(--font-head);
 }
-/* Two outbound links can sit side by side, and wrap rather than overflow. */
-.project-detail-actions{display:flex; flex-wrap:wrap; gap:var(--space-3);}
 
 /* ===== Error pages =====
    Shares the site's language without depending on the part of it that may

@@ -82,7 +82,9 @@ export interface ProjectDetail {
    */
   readonly cover?: readonly CoverFace[]
   /**
-   * Where to hear it. Rendered whenever it is present.
+   * Where to hear it. Rendered on the cover's caption line whenever it is
+   * present — which means it needs a cover to hang from, and the data test
+   * holds it to that.
    *
    * Note what does *not* decide this: the project's `type` string. Keying the
    * behaviour off `type === 'Album Cover'` would put a rendering decision at

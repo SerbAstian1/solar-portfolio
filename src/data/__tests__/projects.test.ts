@@ -86,6 +86,16 @@ describe('album cover projects', () => {
   })
 })
 
+describe('every Spotify link', () => {
+  it('has a cover to hang from', () => {
+    // The button renders on the cover's caption line and nowhere else, so a
+    // link on a project without a cover would be data the panel never shows.
+    for (const project of PROJECTS) {
+      if (project.detail.spotifyUrl) expect(project.detail.cover).toBeTruthy()
+    }
+  })
+})
+
 describe('brand system projects', () => {
   const systems = PROJECTS.filter(hasShowcase)
 

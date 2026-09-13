@@ -27,6 +27,7 @@ describe('icon grids', () => {
         'contact',
         'identity',
         'artwork',
+        'spotify',
       ]),
     )
   })

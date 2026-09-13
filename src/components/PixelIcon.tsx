@@ -203,6 +203,25 @@ const ICONS = {
     '....####....',
     '............',
   ],
+  /* Where a cover can be heard. The service mark above is a record — a ring —
+     and this is the same disc filled, with the three waves cut out of it, so
+     the two music marks share a footprint and a family. Nobody's logo,
+     redrawn: an image of the mark rather than the mark, in the grid every
+     other icon here is built on. */
+  spotify: [
+    '............',
+    '....####....',
+    '..###..###..',
+    '.###.##.###.',
+    '.##########.',
+    '.###....###.',
+    '.##.####.##.',
+    '.##########.',
+    '.##......##.',
+    '..########..',
+    '....####....',
+    '............',
+  ],
 } as const
 
 export type PixelIconName = keyof typeof ICONS

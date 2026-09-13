@@ -1,6 +1,6 @@
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'react'
 import { useScramble } from '../hooks/useScramble'
-import PixelIcon from './PixelIcon'
+import PixelIcon, { type PixelIconName } from './PixelIcon'
 
 /**
  * The label, one fixed-width cell per character.
@@ -85,6 +85,16 @@ function useScrambleTriggers<E extends HTMLElement>(
 
 interface OutlineButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children?: ReactNode
+  /**
+   * A mark ahead of the label — part of what the control says, so it sits at
+   * full strength in the icon orange, unlike the external mark which trails
+   * the label as a qualifier.
+   *
+   * A prop rather than a child, because `label` is read from `children`
+   * being a string: an icon passed alongside the text would silently kill
+   * both the scramble and the aria-label.
+   */
+  icon?: PixelIconName
 }
 
 /**
@@ -97,6 +107,7 @@ interface OutlineButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 export default function OutlineButton({
   children,
   className = '',
+  icon,
   onMouseEnter,
   onMouseLeave,
   onFocus,
@@ -119,6 +130,7 @@ export default function OutlineButton({
       {...triggers}
       {...props}
     >
+      {icon && <PixelIcon name={icon} />}
       {label ? <ScrambleLabel display={display} label={label} /> : children}
     </button>
   )
@@ -126,6 +138,8 @@ export default function OutlineButton({
 
 interface OutlineLinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
   children?: ReactNode
+  /** As on OutlineButton. */
+  icon?: PixelIconName
 }
 
 /**
@@ -139,6 +153,7 @@ interface OutlineLinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
 export function OutlineLink({
   children,
   className = '',
+  icon,
   onMouseEnter,
   onMouseLeave,
   onFocus,
@@ -171,6 +186,7 @@ export function OutlineLink({
       {...triggers}
       {...props}
     >
+      {icon && <PixelIcon name={icon} />}
       {label ? <ScrambleLabel display={display} label={label} /> : children}
       {isExternal && <PixelIcon name="external" className="btn-external-mark" />}
     </a>
