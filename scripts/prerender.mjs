@@ -70,6 +70,12 @@ function extractSections() {
 const escape = (s) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
+/* public/og-cover.png is a real 1200x630 screenshot of the running site, not
+   a designed card, so the alt text describes the scene it actually shows. It
+   goes stale when the scene changes — re-shoot it rather than editing it. */
+const COVER_ALT =
+  "The AW. site: a dithered starfield with an orange star at centre and five labelled planets — Work, Services, About, Pricing, Contact — on elliptical orbits around it."
+
 const { entries, origin, siteName } = extractSeo()
 const sections = extractSections()
 /* Idempotency. This script reads dist/index.html as its template AND writes
@@ -191,10 +197,16 @@ function render(section) {
     `<meta property="og:description" content="${escape(seo.description)}" />`,
     `<meta property="og:url" content="${url}" />`,
     `<meta property="og:image" content="${origin}/og-cover.png" />`,
+    /* Declared so the first scrape can lay the card out as a large image
+       without waiting to fetch and measure the file. */
+    `<meta property="og:image:width" content="1200" />`,
+    `<meta property="og:image:height" content="630" />`,
+    `<meta property="og:image:alt" content="${escape(COVER_ALT)}" />`,
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:title" content="${escape(seo.title)}" />`,
     `<meta name="twitter:description" content="${escape(seo.description)}" />`,
     `<meta name="twitter:image" content="${origin}/og-cover.png" />`,
+    `<meta name="twitter:image:alt" content="${escape(COVER_ALT)}" />`,
     `<script type="application/ld+json">${section ? pageLd(section, seo, url) : organizationLd()}</script>`,
     HINTS,
   ].join('\n  ')

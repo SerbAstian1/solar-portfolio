@@ -187,8 +187,6 @@ exists. If the host has a setting for this, set it to return a real `404`.
   still lost, so the cap is worth watching.
 - Album cover projects show placeholder artwork, and their Spotify links point
   at real tracks that are not the clients' releases.
-- `og-cover.png` is referenced by the share tags but does not exist; it needs a
-  real 1200x630 image.
 - Individual projects are not deep-linkable — there are no `/work/:project`
   routes yet.
 - Pricing figures in `data/planets.ts` are illustrative. The two branding case
