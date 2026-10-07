@@ -290,14 +290,15 @@ export const PLANETS: readonly PlanetContent[] = [
     id: 'pricing',
     label: 'Pricing',
     cat: 'Investment',
-    preview: 'Four engagement tiers, from a single deliverable to full brand + web partnerships.',
+    preview: 'Five engagement tiers, from a single deliverable to a complete brand hub.',
     panel: {
       eyebrow: 'Investment',
-      title: 'Four ways to work together.',
+      title: 'Five ways to work together.',
       tiers: [
         { name: 'Starter', price: 'From $265', budget: '$265 – $640', features: ['Single deliverable (logo, one-page site, or content batch)', '1 revision round', '2 week turnaround'] },
         { name: 'Studio', price: 'From $640', budget: '$640 – $1,200', features: ['Full brand identity or web design', '2 revision rounds', '4–6 week turnaround'] },
-        { name: 'Partner', price: 'From $1,200', budget: '$1,200 and above', features: ['Brand + web, fully integrated', '3 revision rounds', 'Dedicated async support'] },
+        { name: 'Partner', price: 'From $1,200', budget: '$1,200 – $2,200', features: ['Brand + web, fully integrated', '3 revision rounds', 'Dedicated async support'] },
+        { name: 'Brand Hub', price: 'From $2,200', budget: '$2,200 and above', features: ['Everything in Partner', 'Custom Brand Hub to house all your brand assets', 'Organized asset delivery and handoff'] },
         { name: 'Retainer', price: 'Custom', budget: 'Not sure yet', features: ['Ongoing brand + content partnership', 'Priority turnaround', 'Monthly strategy check-in'] },
       ],
     },

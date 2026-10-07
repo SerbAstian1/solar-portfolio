@@ -89,7 +89,7 @@ const PROJECT_TYPES = [
   'Something else',
 ]
 
-/* Mirrors the four tiers on the Pricing panel, so an answer here means the
+/* Mirrors the five tiers on the Pricing panel, so an answer here means the
    same thing as the number a visitor has already seen. "Not sure yet" is a
    real answer rather than an escape hatch: plenty of good enquiries do not
    know the figure, and forcing one invents a number nobody believes. */
@@ -97,7 +97,8 @@ export const BUDGETS = [
   'Under $265',
   '$265 – $640',
   '$640 – $1,200',
-  '$1,200 and above',
+  '$1,200 – $2,200',
+  '$2,200 and above',
   'Not sure yet',
 ]
 

@@ -38,6 +38,12 @@ describe('tier to budget mapping', () => {
     for (const tier of custom) expect(tier.budget).toBe('Not sure yet')
   })
 
+  it('offers the Brand Hub at $2,200 with everything in Partner included', () => {
+    const brandHub = TIERS.find((tier) => tier.name === 'Brand Hub')
+    expect(brandHub?.price).toBe('From $2,200')
+    expect(brandHub?.features).toContain('Everything in Partner')
+  })
+
   it('never maps a tier to the band below its own starting price', () => {
     /* "From $640" belongs in the $640–$1,200 band, not the one under it.
        Parsed from the price so the check is independent of how the mapping
