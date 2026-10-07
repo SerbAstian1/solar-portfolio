@@ -94,10 +94,10 @@ const PROJECT_TYPES = [
    real answer rather than an escape hatch: plenty of good enquiries do not
    know the figure, and forcing one invents a number nobody believes. */
 export const BUDGETS = [
-  'Under ₦350k',
-  '₦350k – ₦850k',
-  '₦850k – ₦1.6M',
-  '₦1.6M and above',
+  'Under $265',
+  '$265 – $640',
+  '$640 – $1,200',
+  '$1,200 and above',
   'Not sure yet',
 ]
 

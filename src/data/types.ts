@@ -113,7 +113,7 @@ export interface PricingTier {
    * The contact form's budget option this tier corresponds to.
    *
    * Declared on the tier rather than derived from the price string, which
-   * would mean parsing "From ₦850k" at runtime and guessing at a band. It is
+   * would mean parsing "From $640" at runtime and guessing at a band. It is
    * also not a lookup table living in the component: a mapping kept away from
    * the thing it maps drifts the moment either side is edited. A test asserts
    * every value here is a real option in the form.

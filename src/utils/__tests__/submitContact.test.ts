@@ -6,7 +6,7 @@ const values: ContactValues = {
   name: '  Ada Okoye  ',
   email: ' ada@studio.co ',
   projectType: 'Brand identity or guideline system',
-  budget: '₦850k – ₦1.6M',
+  budget: '$640 – $1,200',
   timeline: 'Within a month',
   brief: '  A full identity for a construction firm launching in Q1.  ',
 }
@@ -34,7 +34,7 @@ describe('payload', () => {
   it('titles the fields that become labels in the email', () => {
     const p = buildPayload(values)
     expect(p['Project type']).toBe('Brand identity or guideline system')
-    expect(p.Budget).toBe('₦850k – ₦1.6M')
+    expect(p.Budget).toBe('$640 – $1,200')
     expect(p.Timeline).toBe('Within a month')
     expect(p).not.toHaveProperty('projectType')
   })

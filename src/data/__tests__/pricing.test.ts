@@ -39,16 +39,16 @@ describe('tier to budget mapping', () => {
   })
 
   it('never maps a tier to the band below its own starting price', () => {
-    /* "From ₦850k" belongs in the ₦850k–₦1.6M band, not the one under it.
+    /* "From $640" belongs in the $640–$1,200 band, not the one under it.
        Parsed from the price so the check is independent of how the mapping
        was written, rather than restating it. */
     const floor = (price: string): number | null => {
-      const m = /₦([\d.]+)(k|M)/i.exec(price)
-      // Both groups are required by the pattern, but TypeScript types capture
-      // groups as possibly undefined, so this is checked rather than asserted.
-      const [, amount, unit] = m ?? []
-      if (!amount || !unit) return null
-      return Number(amount) * (unit.toLowerCase() === 'm' ? 1_000_000 : 1_000)
+      const m = /\$([\d,]+)/.exec(price)
+      // The capture is required by the pattern, but TypeScript types it as
+      // possibly undefined, so this is checked rather than asserted.
+      const [, amount] = m ?? []
+      if (!amount) return null
+      return Number(amount.replaceAll(',', ''))
     }
     for (const tier of TIERS) {
       const from = floor(tier.price)

@@ -295,9 +295,9 @@ export const PLANETS: readonly PlanetContent[] = [
       eyebrow: 'Investment',
       title: 'Four ways to work together.',
       tiers: [
-        { name: 'Starter', price: 'From ₦350k', budget: '₦350k – ₦850k', features: ['Single deliverable (logo, one-page site, or content batch)', '1 revision round', '2 week turnaround'] },
-        { name: 'Studio', price: 'From ₦850k', budget: '₦850k – ₦1.6M', features: ['Full brand identity or web design', '2 revision rounds', '4–6 week turnaround'] },
-        { name: 'Partner', price: 'From ₦1.6M', budget: '₦1.6M and above', features: ['Brand + web, fully integrated', '3 revision rounds', 'Dedicated async support'] },
+        { name: 'Starter', price: 'From $265', budget: '$265 – $640', features: ['Single deliverable (logo, one-page site, or content batch)', '1 revision round', '2 week turnaround'] },
+        { name: 'Studio', price: 'From $640', budget: '$640 – $1,200', features: ['Full brand identity or web design', '2 revision rounds', '4–6 week turnaround'] },
+        { name: 'Partner', price: 'From $1,200', budget: '$1,200 and above', features: ['Brand + web, fully integrated', '3 revision rounds', 'Dedicated async support'] },
         { name: 'Retainer', price: 'Custom', budget: 'Not sure yet', features: ['Ongoing brand + content partnership', 'Priority turnaround', 'Monthly strategy check-in'] },
       ],
     },
